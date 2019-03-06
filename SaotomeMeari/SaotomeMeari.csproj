@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.0.15" />
+    <PackageReference Include="ZooKeeper.Net" Version="3.4.6.2" />
   </ItemGroup>
 
   <ItemGroup>

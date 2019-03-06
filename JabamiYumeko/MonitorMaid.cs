@@ -190,25 +190,25 @@ namespace JabamiYumeko
             RemoveConnectEndPoint(_serviceEndPoint);
         }
 
-        private void GotHostSnapshotHandler(object sender, GotHostSnapshotEventArgs e)
+        private void GotHostSnapshotHandler(object sender, Host e)
         {
             foreach (var p in _sockets)
             {
                 if (p.Value.Type == SocketType.Accept)
                 {
-                    SendTcp(p.Key, ProtocolPacker.Request(Host.Id, e.Host).Item1);
+                    SendTcp(p.Key, ProtocolPacker.Request(Host.Id, e).Item1);
                 }
             }
           
         }
 
-        private void GotServiceSnapshotHandler(object sender, GotServiceSnapshotEventArgs e)
+        private void GotServiceSnapshotHandler(object sender, Service e)
         {
             foreach (var p in _sockets)
             {
                 if (p.Value.Type == SocketType.Accept)
                 {
-                    SendTcp(p.Key, ProtocolPacker.Request(Service.Id, e.Service).Item1);
+                    SendTcp(p.Key, ProtocolPacker.Request(Service.Id, e).Item1);
                 }
             }
         }

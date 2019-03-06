@@ -44,6 +44,8 @@ namespace SaotomeMeari
         /// </summary>
         private readonly List<PingChannel> _channels=new List<PingChannel>();
 
+        private ClusterWatcher _watcher;
+
         /// <summary>
         /// 通知设备状态事件处理函数
         /// </summary>
@@ -59,8 +61,20 @@ namespace SaotomeMeari
             _dbSpan = AppConfig.ReadInt32("dbspan")??60;
             LogPool.Logger.LogInformation("database span={0}", _dbSpan);
             _dbIndex = 0;
+
             _clusterIndex = 0;
-            _clusterCount = 1;
+            string address=AppConfig.ReadString("zookeeper");
+            if (address == null)
+            {
+                _clusterCount = 1;
+                LogPool.Logger.LogInformation("not found zk count 1 index 0");
+            }
+            else
+            {
+                _clusterCount = 0;
+                _watcher = new ClusterWatcher(address);
+                _watcher.ClusterNodeChanged += ClusterNodeChangedHandler;
+            }
 
             int channelCount = AppConfig.ReadInt32("channelcount") ?? 0;
             LogPool.Logger.LogInformation("channel count={0}", channelCount);
@@ -82,6 +96,13 @@ namespace SaotomeMeari
             }
         }
 
+        private void ClusterNodeChangedHandler(object sender, ClusterNodeChangedEventArgs e)
+        {
+            _clusterIndex = e.Index;
+            _clusterCount = e.Count;
+            LogPool.Logger.LogInformation("cluster count {0} index {1}",e.Count,e.Index);
+        }
+
         protected override void ExitCore()
         {
             foreach (PingChannel channel in _channels)
@@ -97,7 +118,7 @@ namespace SaotomeMeari
             {
                 return;
             }
-            if (_dbIndex % _dbSpan==0)
+            if (_dbIndex % _dbSpan==0&&_clusterCount!=0)
             {
                 Dictionary<uint, IPStatus> ips = new Dictionary<uint, IPStatus>();
                 using (MySqlConnection con = new MySqlConnection(AppConfig.ReadString("mysql")))
