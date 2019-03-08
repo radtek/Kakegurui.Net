@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Threading;
 using Kakegurui.Core;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ namespace JabamiYumeko
     /// <summary>
     /// 系统检测线程
     /// </summary>
-    public abstract class PerformanceChannel:TaskObject
+    public abstract class PerformanceTask:TaskObject
     {
         /// <summary>
         /// 命令执行成功
@@ -62,7 +63,7 @@ namespace JabamiYumeko
         /// 构造函数
         /// </summary>
         /// <param name="host">主机信息</param>
-        protected PerformanceChannel(Host host) : base("performance_"+host.Ip)
+        protected PerformanceTask(Host host) : base("performance_"+host.Ip)
         {
             _host = host;
         }
@@ -94,7 +95,7 @@ namespace JabamiYumeko
                     client.Connect();
                     return ControlServiceCore(client, request);
                 }
-                catch (Exception e)
+                catch (SocketException e)
                 {
                     LogPool.Logger.LogInformation(e, "ssh control");
                     return e.Message;
@@ -157,7 +158,7 @@ namespace JabamiYumeko
                             }
 
                         }
-                        catch (Exception e)
+                        catch (SocketException e)
                         {
                             LogPool.Logger.LogInformation(e, "ssh error");
                         }

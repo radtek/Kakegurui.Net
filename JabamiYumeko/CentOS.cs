@@ -8,7 +8,7 @@ namespace JabamiYumeko
     /// <summary>
     /// centos系统
     /// </summary>
-    public abstract class CentOS: PerformanceChannel
+    public abstract class CentOS: PerformanceTask
     {
         /// <summary>
         /// 构造函数

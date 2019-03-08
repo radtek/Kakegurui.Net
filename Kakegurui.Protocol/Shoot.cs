@@ -24,7 +24,7 @@ namespace Kakegurui.Protocol
         /// <param name="tag">连入套接字标记</param>
         /// <param name="protocol">等待协议编号</param>
         /// <param name="buffer">字节流</param>
-        public Shoot_Request(ushort tag, int protocol, byte[] buffer)
+        public Shoot_Request(ushort tag, short protocol, byte[] buffer)
         {
             RemotePort = tag;
             ProtocolId = protocol;
@@ -37,7 +37,7 @@ namespace Kakegurui.Protocol
         /// <param name="endPoint">发送地址</param>
         /// <param name="protocol">等待协议编号</param>
         /// <param name="buffer">字节流</param>
-        public Shoot_Request(IPEndPoint endPoint, int protocol, byte[] buffer)
+        public Shoot_Request(IPEndPoint endPoint, short protocol, byte[] buffer)
         {
             if (endPoint?.Address != null)
             {
@@ -56,7 +56,7 @@ namespace Kakegurui.Protocol
         /// <param name="remoteEndPoint">发送到的远程地址</param>
         /// <param name="protocol">等待协议编号</param>
         /// <param name="buffer">字节流</param>
-        public Shoot_Request(IPEndPoint bindEndPoint, IPEndPoint remoteEndPoint, int protocol, byte[] buffer)
+        public Shoot_Request(IPEndPoint bindEndPoint, IPEndPoint remoteEndPoint, short protocol, byte[] buffer)
         {
             if (bindEndPoint?.Address != null)
             {
@@ -99,7 +99,7 @@ namespace Kakegurui.Protocol
         /// <summary>
         /// 等待协议编号
         /// </summary>
-        [SerializeIndex(5)] public int ProtocolId { get; set; }
+        [SerializeIndex(5)] public short ProtocolId { get; set; }
 
         /// <summary>
         /// 发送字节流

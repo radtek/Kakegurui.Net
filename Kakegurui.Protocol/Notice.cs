@@ -7,7 +7,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class Notice_Request
     {
-        public static byte Id => 0x07;
+        public static byte Id => 0x05;
 
         /// <summary>
         /// 远程地址
@@ -22,15 +22,9 @@ namespace Kakegurui.Protocol
         public ushort RemotePort { get; set; }
 
         /// <summary>
-        /// 协议编号
-        /// </summary>
-        [SerializeIndex(3)]
-        public int ProtocolId { get; set; }
-
-        /// <summary>
         /// 字节流
         /// </summary>
-        [SerializeIndex(4)]
+        [SerializeIndex(3)]
         public byte[] Buffer { get; set; }
 
     }

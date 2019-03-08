@@ -13,7 +13,7 @@ namespace Kakegurui.Protocol
     {
         protected override GotProtocolEventArgs Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
         {
-            int head=buffer.FindIndex(b => b == ProtocolHead.Head);
+            int head=buffer.FindIndex(b => b == ProtocolHead.Tag);
      
             //未找到协议
             if (head == -1)
@@ -22,9 +22,7 @@ namespace Kakegurui.Protocol
                 {
                     Result = AnalysisResult.Empty,
                     Offset = 0,
-                    Size = buffer.Count- start,
-                    ProtocolId = 0,
-                    TimeStamp = 0
+                    Size = buffer.Count- start
                 };
             }
             else
@@ -38,9 +36,7 @@ namespace Kakegurui.Protocol
                     {
                         Result = AnalysisResult.Half,
                         Offset = offset,
-                        Size = lessSize,
-                        ProtocolId = 0,
-                        TimeStamp = 0
+                        Size = lessSize
                     };
                 }
                 else
@@ -55,9 +51,7 @@ namespace Kakegurui.Protocol
                         {
                             Result = AnalysisResult.Half,
                             Offset = offset,
-                            Size = lessSize,
-                            ProtocolId = 0,
-                            TimeStamp = 0
+                            Size = lessSize
                         };
                     }
                     else

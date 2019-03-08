@@ -6,7 +6,7 @@ namespace JabamiYumeko
     {
         static void Main(string[] args)
         {
-            MonitorMaid maid = new MonitorMaid();
+            MonitorTask maid = new MonitorTask();
             maid.Start();
             Console.ReadLine();
             maid.Stop();

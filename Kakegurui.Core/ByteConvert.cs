@@ -9,7 +9,7 @@ namespace Kakegurui.Core
     /// <summary>
     /// 字节和文本转换
     /// </summary>
-    public class ByteConvert
+    public static class ByteConvert
     {
         /// <summary>
         /// 字节流转十六进制字符串

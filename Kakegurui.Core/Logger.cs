@@ -151,7 +151,7 @@ namespace Kakegurui.Core
                 {
                     LogCore(exception == null
                         ? $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}][{logLevel}][{Thread.CurrentThread.ManagedThreadId}] {state}"
-                        : $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}][{logLevel}][{Thread.CurrentThread.ManagedThreadId}] {state} {exception}");
+                        : $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}][{logLevel}][{Thread.CurrentThread.ManagedThreadId}] {state}\n{exception}");
                 }               
             }
         }

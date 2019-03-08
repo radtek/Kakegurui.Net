@@ -1,4 +1,5 @@
 ﻿using System;
+using Kakegurui.Core;
 
 namespace SaotomeMeari
 {
@@ -6,10 +7,10 @@ namespace SaotomeMeari
     {
         static void Main(string[] args)
         {
-            PingMaid maid = new PingMaid();
-            maid.Start();
+            DBTask task = new DBTask();
+            task.Start();
             Console.ReadLine();
-            maid.Stop();
+            task.Stop();
         }
     }
 }

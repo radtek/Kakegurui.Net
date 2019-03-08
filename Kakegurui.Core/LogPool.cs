@@ -1,21 +1,38 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System;
+using System.Globalization;
+using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
 {
     /// <summary>
     /// 日志
     /// </summary>
-    public class LogPool
+    public static class LogPool
     {
         /// <summary>
         /// 构造函数
         /// </summary>
         static LogPool()
         {
+            //删除日志文件
+            string directory = AppConfig.ReadString("log.file.directory") ?? "../log/";
+            int holdDays = AppConfig.ReadInt32("log.file.holddays") ?? 0;
+            if (Directory.Exists(directory))
+            {
+                //删除超时文件
+                DeleteFiles(directory, holdDays);
+            }
+            else
+            {
+                //创建日志目录
+                Directory.CreateDirectory(directory);
+            }
+
             //从配置文件添加日志
             int index = 1;
             ILoggerProvider provider;
-            LoggerFactory factoty=new LoggerFactory();
+            LoggerFactory factoty = new LoggerFactory();
             while ((provider = ReadProvider(string.Format("log.{0}", index))) != null)
             {
                 factoty.AddProvider(provider);
@@ -23,6 +40,36 @@ namespace Kakegurui.Core
             }
 
             Logger = factoty.CreateLogger("log");
+        }
+
+        /// <summary>
+        /// 删除文件
+        /// </summary>
+        /// <param name="directory">目录</param>
+        /// <param name="holdDays">保存天数</param>
+        private static void DeleteFiles(string directory,int holdDays)
+        {
+            foreach (string filePath in Directory.GetFiles(directory))
+            {
+                string[] datas = Path.GetFileNameWithoutExtension(filePath)
+                    .Split("_", StringSplitOptions.RemoveEmptyEntries);
+                if (datas.Length >= 2)
+                {
+                    DateTime fileDate = DateTime.ParseExact(datas[datas.Length - 1], "yyMMdd",
+                        CultureInfo.CurrentCulture);
+                    if ((DateTime.Today - fileDate).TotalDays >= holdDays)
+                    {
+                        try
+                        {
+                            File.Delete(filePath);
+                        }
+                        catch (IOException)
+                        {
+
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

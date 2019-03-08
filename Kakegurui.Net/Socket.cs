@@ -14,7 +14,9 @@ namespace Kakegurui.Net
         Timeout = 2,
         Disconnection = 3,
         NotFoundSocket = 4,
-        InvalidTag = 5
+        InvalidTag = 5,
+        NotFoundHandler = 6,
+        NotFoundEndPoint=7
     }
 
     /// <summary>

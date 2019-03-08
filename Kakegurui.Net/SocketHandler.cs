@@ -109,7 +109,6 @@ namespace Kakegurui.Net
         {
             TransmitSize = 0;
             ReceiveSize = 0;
-            _logger = LogPool.Logger;
         }
 
         /// <summary>
@@ -121,6 +120,17 @@ namespace Kakegurui.Net
         /// 接收总字节数
         /// </summary>
         public ulong ReceiveSize { get; private set; }
+
+        /// <summary>
+        /// 写日志
+        /// </summary>
+        /// <param name="message">日志格式</param>
+        /// <param name="args">日志内容</param>
+        private void Log(string message, params object[] args)
+        {
+            LogPool.Logger.LogDebug(message, args);
+            _logger?.LogInformation(message, args);
+        }
 
         /// <summary>
         /// tcp发送
@@ -139,7 +149,8 @@ namespace Kakegurui.Net
                     _handlers.AddLast(handler);
                 });
             }
-            _logger?.LogInformation("{0} {1} {2} {3}",socket.Handle, "-", buffer.Length, ByteConvert.ToHex(buffer));
+
+            Log("{0} {1} {2} {3}", socket.Handle, "-", buffer.Length, ByteConvert.ToHex(buffer));
      
             if (buffer.Length == 0)
             {
@@ -160,7 +171,7 @@ namespace Kakegurui.Net
                 }
                 return SocketResult.Success;
             }
-            catch (Exception)
+            catch (SocketException)
             {
                 return SocketResult.SendFailed;
             }
@@ -184,7 +195,8 @@ namespace Kakegurui.Net
                     _handlers.AddLast(handler);
                 });
             }
-            _logger?.LogInformation("{0} {1} {2} {3} {4}", socket.Handle,remoteEndPoint.ToString(), "-", buffer.Length, ByteConvert.ToHex(buffer));
+
+            Log("{0} {1} {2} {3} {4}", socket.Handle,remoteEndPoint.ToString(), "-", buffer.Length, ByteConvert.ToHex(buffer));
 
             if (buffer.Length == 0)
             {
@@ -205,7 +217,7 @@ namespace Kakegurui.Net
                 }
                 return SocketResult.Success;
             }
-            catch (Exception)
+            catch (SocketException)
             {
                 return SocketResult.SendFailed;
             } 
@@ -244,11 +256,11 @@ namespace Kakegurui.Net
 
             if (remoteEndPoint==null)
             {
-                _logger?.LogInformation("{0} {1} {2} {3}",socket.Handle, "+", size, ByteConvert.ToHex(buffer,size));
+                Log("{0} {1} {2} {3}",socket.Handle, "+", size, ByteConvert.ToHex(buffer,size));
             }
             else
             {
-                _logger?.LogInformation("{0} {1} {2} {3} {4}", socket.Handle, remoteEndPoint.ToString(), "+", size, ByteConvert.ToHex(buffer,size));
+                Log("{0} {1} {2} {3} {4}", socket.Handle, remoteEndPoint.ToString(), "+", size, ByteConvert.ToHex(buffer,size));
             }
 
             _residueBuffer.AddRange(buffer.Take(size));

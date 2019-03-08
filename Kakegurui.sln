@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27004.2008
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kakegurui", "Kakegurui\Kakegurui.csproj", "{636D96DE-CA9C-4D22-8930-98BE6C9ACC02}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kakegurui.Net", "Kakegurui.Net\Kakegurui.Net.csproj", "{33BD197A-5530-47E5-AFAB-9C2C1F4C96A7}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kakegurui.Protocol", "Kakegurui.Protocol\Kakegurui.Protocol.csproj", "{A94657FD-2B14-4D1B-B33F-E0B7369AD64C}"
@@ -15,16 +13,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JabamiYumeko", "JabamiYumek
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SaotomeMeari", "SaotomeMeari\SaotomeMeari.csproj", "{65D6B50F-92D8-4D80-8B65-8C042DAF2BCD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MomobamiKirari", "MomobamiKirari\MomobamiKirari.csproj", "{0E57E898-1C31-4813-B7AC-0E60F17E318E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{636D96DE-CA9C-4D22-8930-98BE6C9ACC02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{636D96DE-CA9C-4D22-8930-98BE6C9ACC02}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{636D96DE-CA9C-4D22-8930-98BE6C9ACC02}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{636D96DE-CA9C-4D22-8930-98BE6C9ACC02}.Release|Any CPU.Build.0 = Release|Any CPU
 		{33BD197A-5530-47E5-AFAB-9C2C1F4C96A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{33BD197A-5530-47E5-AFAB-9C2C1F4C96A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33BD197A-5530-47E5-AFAB-9C2C1F4C96A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -45,6 +41,10 @@ Global
 		{65D6B50F-92D8-4D80-8B65-8C042DAF2BCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65D6B50F-92D8-4D80-8B65-8C042DAF2BCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65D6B50F-92D8-4D80-8B65-8C042DAF2BCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E57E898-1C31-4813-B7AC-0E60F17E318E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E57E898-1C31-4813-B7AC-0E60F17E318E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E57E898-1C31-4813-B7AC-0E60F17E318E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E57E898-1C31-4813-B7AC-0E60F17E318E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

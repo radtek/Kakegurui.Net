@@ -23,12 +23,16 @@ namespace Kakegurui.Net
         /// </summary>
         public SocketHandler Handler { get; set; }
     }
-   
+
     /// <summary>
     /// 连接服务线程
     /// </summary>
-    public class EndPointChannel:TaskObject
+    public class ConnectionTask:TaskObject
     {
+        /// <summary>
+        /// 连接间隔时间
+        /// </summary>
+        private const int ConnectionSpan = 5000;
         /// <summary>
         /// 连接地址集合
         /// </summary>
@@ -47,7 +51,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 构造函数
         /// </summary>
-        public EndPointChannel() 
+        public ConnectionTask() 
             : base("connection")
         {
         }
@@ -74,7 +78,7 @@ namespace Kakegurui.Net
         {
             if (_endPoints.TryRemove(endPoint, out SocketItem item))
             {
-                item.Socket?.Close();
+                item.Socket = null;
             }
             _eventWait.Set();
         }
@@ -82,8 +86,12 @@ namespace Kakegurui.Net
         /// <summary>
         /// 报告连接套接字错误
         /// </summary>
-        public void ReportError()
+        public void ReportError(IPEndPoint endPoint)
         {
+            if (_endPoints.TryGetValue(endPoint, out SocketItem item))
+            {
+                item.Socket = null;
+            }
             _eventWait.Set();
         }
 
@@ -97,23 +105,23 @@ namespace Kakegurui.Net
         {
             while (!IsCancelled())
             {
-                foreach (var endPoint in _endPoints)
+                foreach (var pair in _endPoints)
                 {
-                    if (endPoint.Value.Socket?.Connected!=true)
+                    if (pair.Value.Socket?.Connected!=true)
                     {
                         Socket socket = new Socket(
                             AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
                         try
                         {
-                            socket.Connect(endPoint.Key);
+                            socket.Connect(pair.Key);
                             Connected?.Invoke(this,new ConnectedEventArgs
                             {
                                 Socket = socket,
-                                Handler = endPoint.Value.Handler.Clone()
+                                Handler = pair.Value.Handler.Clone()
                             });
-                            endPoint.Value.Socket = socket;
+                            pair.Value.Socket = socket;
                         }
-                        catch (Exception)
+                        catch (SocketException)
                         {
                             socket.Close();
                         }
@@ -126,7 +134,7 @@ namespace Kakegurui.Net
                 }
                 else
                 {
-                    Thread.Sleep(AppConfig.LongSleepSpan);
+                    Thread.Sleep(ConnectionSpan);
                 }
             }
         }

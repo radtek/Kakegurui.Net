@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="ProtocolMaid.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kakegurui.Net\Kakegurui.Net.csproj" />
   </ItemGroup>
 

@@ -11,6 +11,11 @@ namespace Kakegurui.Core
     public abstract class TaskObject
     {
         /// <summary>
+        /// 停止时的轮询等待时间
+        /// </summary>
+        private const int StopSpan = 100;
+
+        /// <summary>
         /// 线程类
         /// </summary>
         private readonly Task _task;
@@ -47,8 +52,15 @@ namespace Kakegurui.Core
         private void Action()
         {
             LogPool.Logger.LogInformation(string.Format("{0} start",Name));
-            ActionCore();
-            LogPool.Logger.LogInformation(string.Format("{0} stop", Name));
+            try
+            {
+                ActionCore();
+                LogPool.Logger.LogInformation(string.Format("{0} stop", Name));
+            }
+            catch (Exception e)
+            {
+                LogPool.Logger.LogError(e, string.Format("{0} exit", Name));
+            }
         }
 
         /// <summary>
@@ -82,7 +94,7 @@ namespace Kakegurui.Core
             _cancelled = true;
             while (!_task.IsCompleted)
             {
-                Thread.Sleep(AppConfig.ShortSleepSpan);
+                Thread.Sleep(StopSpan);
             }
         }
     }

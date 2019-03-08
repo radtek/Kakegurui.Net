@@ -6,22 +6,12 @@ namespace Kakegurui.Core
     /// <summary>
     /// 当前程序配置文件读写类
     /// </summary>
-    public class AppConfig
+    public static class AppConfig
     {
         /// <summary>
         /// 锁超时时间
         /// </summary>
         public static int LockTimeout { get; }
-
-        /// <summary>
-        /// 长睡眠时间
-        /// </summary>
-        public static int LongSleepSpan { get; }
-
-        /// <summary>
-        /// 短睡眠时间
-        /// </summary>
-        public static int ShortSleepSpan { get; }
 
         static AppConfig()
         {
@@ -31,8 +21,6 @@ namespace Kakegurui.Core
                 .Build();
 
             LockTimeout = ReadInt32("LockTimeout") ?? 3000;
-            LongSleepSpan = ReadInt32("LongSleepSpan") ?? 1000;
-            ShortSleepSpan = ReadInt32("ShortSleepSpan") ?? 100;
         }
 
         /// <summary>

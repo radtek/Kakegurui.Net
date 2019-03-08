@@ -18,7 +18,7 @@ namespace Kakegurui.Protocol
         /// 协议头识别码
         /// </summary>
         [SerializeIndex(1)]
-        public static byte Head => 0xAB;
+        public static byte Tag => 0xAB;
 
         /// <summary>
         /// 协议编号

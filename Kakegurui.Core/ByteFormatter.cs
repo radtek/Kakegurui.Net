@@ -30,7 +30,7 @@ namespace Kakegurui.Core
     /// <summary>
     /// 字节流序列化
     /// </summary>
-    public class ByteFormatter
+    public static class ByteFormatter
     {
         /// <summary>
         /// 序列化

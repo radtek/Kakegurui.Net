@@ -8,7 +8,7 @@ namespace Kakegurui.Core
     /// <summary>
     /// 自动锁
     /// </summary>
-    public class AutoLock
+    public static class AutoLock
     {
         /// <summary>
         /// 同步锁

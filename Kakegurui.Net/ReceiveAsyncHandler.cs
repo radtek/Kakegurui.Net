@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Kakegurui.Core;
 
 namespace Kakegurui.Net
 {
@@ -89,11 +90,10 @@ namespace Kakegurui.Net
         /// <summary>
         /// 等待响应数据
         /// </summary>
-        /// <param name="milliseconds">超时时间</param>
-        /// <returns></returns>
-        public bool Wait(int milliseconds)
+        /// <returns>返回true表示收到回复，返回false表示超时</returns>
+        public bool Wait()
         {
-            bool result=_event.WaitOne(milliseconds);
+            bool result=_event.WaitOne(AppConfig.LockTimeout);
             _isNoticed = true;
             return result;
         }

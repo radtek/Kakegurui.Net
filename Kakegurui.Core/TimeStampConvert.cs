@@ -5,7 +5,7 @@ namespace Kakegurui.Core
     /// <summary>
     /// 时间戳转换
     /// </summary>
-    public class TimeStampConvert
+    public static class TimeStampConvert
     {
         /// <summary>
         /// 获取当前时间的时间戳

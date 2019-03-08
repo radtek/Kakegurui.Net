@@ -32,7 +32,7 @@ namespace SaotomeMeari
     /// <summary>
     /// 网络监测线程
     /// </summary>
-    public class PingChannel:TaskObject
+    public class PingTask : TaskObject
     {
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace SaotomeMeari
         /// 构造函数
         /// </summary>
         /// <param name="index">线程序号</param>
-        public PingChannel(int index) : 
+        public PingTask(int index) : 
             base("ping channel"+index)
         {
         }
@@ -93,13 +93,13 @@ namespace SaotomeMeari
                         NoticingStatus?.Invoke(this, new NoticingStatusEventArgs
                         {
                             Ip = address.ToString(),
-                            Status = Convert.ToByte(result)
+                            Status = Convert.ToByte(result==IPStatus.Success?0x01:0x02)
                         });
                     }
 
                     _ips[ip.Key] = result;
                 }
-                Thread.Sleep(AppConfig.LongSleepSpan);
+                Thread.Sleep(5000);
             }
         }
     }

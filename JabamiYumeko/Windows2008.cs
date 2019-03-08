@@ -7,7 +7,7 @@ using Renci.SshNet;
 
 namespace JabamiYumeko
 {
-    public class Windows2008:PerformanceChannel
+    public class Windows2008:PerformanceTask
     {
         /// <summary>
         /// 构造函数
