@@ -160,27 +160,7 @@ namespace Kakegurui.Core
         private static LogLevel ReadLevel(string key)
         {
             string level= AppConfig.ReadString(key);
-
-            if (level == null)
-            {
-                return LogLevel.Critical;
-            }
-
-            switch (level)
-            {
-                case "Trace":
-                    return LogLevel.Trace;
-                case "Debug":
-                    return LogLevel.Debug;
-                case "Info":
-                    return LogLevel.Information;
-                case "Warning":
-                    return LogLevel.Warning;
-                case "Error":
-                    return LogLevel.Error;
-                default:
-                    return LogLevel.Critical;
-            }
+            return Enum.TryParse(level, out LogLevel l) ? l : LogLevel.None;
         }
     }
 }
