@@ -57,5 +57,23 @@ namespace Kakegurui.Core
         {
             return value.Split(separator, StringSplitOptions.RemoveEmptyEntries).Select(data => byte.Parse(data, NumberStyles.HexNumber)).ToList();
         }
+
+        /// <summary>
+        /// 字节列表的异或结果
+        /// </summary>
+        /// <param name="datas">字节列表</param>
+        /// <param name="startIndex">起始序号</param>
+        /// <param name="count">操作字节的个数</param>
+        /// <returns>异或的结果</returns>
+        public static byte Xor(List<byte> datas, int startIndex, int count)
+        {
+            //先取出第一位然后一次异或
+            byte result = datas[startIndex];
+            for (int i = startIndex + 1; i < count; i++)
+            {
+                result = Convert.ToByte(result ^ datas[i]);
+            }
+            return result;
+        }
     }
 }

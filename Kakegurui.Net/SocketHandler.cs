@@ -74,7 +74,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 响应字节流
         /// </summary>
-        public byte[] ResponseBuffer { get; set; }
+        public List<byte> ResponseBuffer { get; set; }
     }
 
     /// <summary>
@@ -139,9 +139,10 @@ namespace Kakegurui.Net
         /// <param name="buffer">字节流</param>
         /// <param name="handler">异步接收处理实例</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(Socket socket, byte[] buffer, ReceiveAsyncHandler handler=null)
+        public SocketResult SendTcp(Socket socket, List<byte> buffer, ReceiveAsyncHandler handler=null)
         {
-            TransmitSize += Convert.ToUInt32(buffer.Length);
+            byte[] temp = buffer.ToArray();
+            TransmitSize += Convert.ToUInt32(temp.Length);
             if (handler != null)
             {
                 AutoLock.Lock(this, () =>
@@ -150,9 +151,9 @@ namespace Kakegurui.Net
                 });
             }
 
-            Log("{0} {1} {2} {3}", socket.Handle, "-", buffer.Length, ByteConvert.ToHex(buffer));
+            Log("{0} {1} {2} {3}", socket.Handle, "-", temp.Length, ByteConvert.ToHex(temp));
      
-            if (buffer.Length == 0)
+            if (temp.Length == 0)
             {
                 return SocketResult.SendFailed;
             }
@@ -160,10 +161,10 @@ namespace Kakegurui.Net
             try
             {
                 int written = 0;
-                while (written != buffer.Length)
+                while (written != temp.Length)
                 {
                     int n;
-                    if ((n = socket.Send(buffer, written, buffer.Length - written, SocketFlags.None)) <= 0)
+                    if ((n = socket.Send(temp, written, temp.Length - written, SocketFlags.None)) <= 0)
                     {
                         return SocketResult.SendFailed;
                     }
@@ -172,6 +173,10 @@ namespace Kakegurui.Net
                 return SocketResult.Success;
             }
             catch (SocketException)
+            {
+                return SocketResult.SendFailed;
+            }
+            catch (ObjectDisposedException)
             {
                 return SocketResult.SendFailed;
             }
@@ -185,9 +190,10 @@ namespace Kakegurui.Net
         /// <param name="buffer">字节流</param>
         /// <param name="handler">异步接收处理实例</param>
         /// <returns></returns>
-        public SocketResult SendUdp(Socket socket, IPEndPoint remoteEndPoint, byte[] buffer, ReceiveAsyncHandler handler = null)
+        public SocketResult SendUdp(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
         {
-            TransmitSize += Convert.ToUInt32(buffer.Length);
+            byte[] temp = buffer.ToArray();
+            TransmitSize += Convert.ToUInt32(temp.Length);
             if (handler != null)
             {
                 AutoLock.Lock(this, ()=>
@@ -196,9 +202,9 @@ namespace Kakegurui.Net
                 });
             }
 
-            Log("{0} {1} {2} {3} {4}", socket.Handle,remoteEndPoint.ToString(), "-", buffer.Length, ByteConvert.ToHex(buffer));
+            Log("{0} {1} {2} {3} {4}", socket.Handle,remoteEndPoint.ToString(), "-", temp.Length, ByteConvert.ToHex(temp));
 
-            if (buffer.Length == 0)
+            if (temp.Length == 0)
             {
                 return SocketResult.SendFailed;
             }
@@ -206,10 +212,10 @@ namespace Kakegurui.Net
             try
             {
                 int written = 0;
-                while (written != buffer.Length)
+                while (written != temp.Length)
                 {
                     int n;
-                    if ((n = socket.SendTo(buffer, written, buffer.Length - written, SocketFlags.None, remoteEndPoint)) <= 0)
+                    if ((n = socket.SendTo(temp, written, temp.Length - written, SocketFlags.None, remoteEndPoint)) <= 0)
                     {
                         return SocketResult.SendFailed;
                     }
@@ -220,7 +226,11 @@ namespace Kakegurui.Net
             catch (SocketException)
             {
                 return SocketResult.SendFailed;
-            } 
+            }
+            catch (ObjectDisposedException)
+            {
+                return SocketResult.SendFailed;
+            }
         }
 
         /// <summary>
@@ -236,7 +246,7 @@ namespace Kakegurui.Net
         /// 复制处理实例
         /// </summary>
         /// <returns>处理实例</returns>
-        public SocketHandler Clone()
+        public virtual SocketHandler Clone()
         {
             SocketHandler handler = (SocketHandler)(GetType().GetConstructors()[0].Invoke(new object[] { }));
             handler.GotProtocol = GotProtocol;

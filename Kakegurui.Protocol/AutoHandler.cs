@@ -66,7 +66,7 @@ namespace Kakegurui.Protocol
                 Result = Convert.ToByte(SocketResult.Success),
                 Buffer = buffer.GetRange(offset, size)
             };
-            byte[] responseBuffer=ProtocolPacker.Response(Shoot_Response.Id, _shootTimeStamp,shoot);
+            List<byte> responseBuffer=ProtocolPacker.Response(Shoot_Response.Id, _shootTimeStamp,shoot);
             _handler.SendTcp(_socket, responseBuffer);
         }
     }
