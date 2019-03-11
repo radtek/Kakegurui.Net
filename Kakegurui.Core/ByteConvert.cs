@@ -18,6 +18,10 @@ namespace Kakegurui.Core
         /// <returns>十六进制字符串</returns>
         public static string ToHex(byte[] buffer)
         {
+            if (buffer == null)
+            {
+                return string.Empty;
+            }
             StringBuilder builder = new StringBuilder();
             foreach (byte b in buffer)
             {

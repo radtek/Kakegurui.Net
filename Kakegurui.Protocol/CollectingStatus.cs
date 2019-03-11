@@ -50,11 +50,6 @@ namespace Kakegurui.Protocol
         /// </summary>
         [SerializeIndex(7)]
         public ulong Receive { get; set; }
-
-        /// <summary>
-        /// 套接字
-        /// </summary>
-        public int Socket { get; set; }
     }
 
     /// <summary>
@@ -73,11 +68,6 @@ namespace Kakegurui.Protocol
         /// </summary>
         [SerializeIndex(2)]
         public long TimeStamp { get; set; }
-
-        /// <summary>
-        /// 线程最后轮询时间
-        /// </summary>
-        public DateTime Time { get; set; }
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ namespace Kakegurui.Core
         static LogPool()
         {
             //删除日志文件
-            string directory = AppConfig.ReadString("log.file.directory") ?? "../log/";
+            string directory = AppConfig.ReadString("log.file.directory") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../log/");
             int holdDays = AppConfig.ReadInt32("log.file.holddays") ?? 0;
             if (Directory.Exists(directory))
             {
@@ -168,6 +168,8 @@ namespace Kakegurui.Core
 
             switch (level)
             {
+                case "Trace":
+                    return LogLevel.Trace;
                 case "Debug":
                     return LogLevel.Debug;
                 case "Info":

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading;
 using Kakegurui.Core;
 using Kakegurui.Net;
@@ -24,22 +23,26 @@ namespace JabamiYumeko
         /// <summary>
         /// 监听地址
         /// </summary>
-        private static IPEndPoint _serviceEndPoint;
+        private static int _servicePort;
 
         /// <summary>
         /// 处理实例
         /// </summary>
         private readonly ProtocolHandler _handler = new ProtocolHandler();
 
+        /// <summary>
+        /// 协议收发
+        /// </summary>
         private readonly ProtocolMaid _protocolMaid = new ProtocolMaid();
 
         /// <summary>
         /// 构造函数
         /// </summary>
         public MonitorTask()
-            :base("monitor task")
+            :base("monitor")
         {
             _handler.GotProtocol += GotMonitorProtocolEventHandler;
+            _protocolMaid.AddTask(this);
         }
 
         /// <summary>
@@ -62,7 +65,6 @@ namespace JabamiYumeko
                 e.ResponseBuffer = ProtocolPacker.Response(ControlService_Response.Id, e.TimeStamp, response);
             }
         }
-
 
         /// <summary>
         /// 获取主机快照事件执行函数
@@ -89,10 +91,9 @@ namespace JabamiYumeko
             int dbIndex = 0;
             int dbSpan = AppConfig.ReadInt32("dbspan") ?? 60;
 
-            int servicePort = AppConfig.ReadInt32("serviceport") ?? 0;
-            LogPool.Logger.LogInformation("service port={0}", servicePort);
-            _serviceEndPoint = new IPEndPoint(IPAddress.Any, servicePort);
-            _protocolMaid.AddListenEndPoint(_serviceEndPoint, _handler);
+            _servicePort = AppConfig.ReadInt32("serviceport") ?? 0;
+            LogPool.Logger.LogInformation("service port={0}", _servicePort);
+            _protocolMaid.AddListenEndPoint(_servicePort, _handler);
             _protocolMaid.Start();
             while (!IsCancelled())
             {
@@ -138,6 +139,7 @@ namespace JabamiYumeko
                                 {
                                     if (_channels.TryRemove(channel.Key, out PerformanceTask c))
                                     {
+                                        _protocolMaid.RemoveTask(c);
                                         c.Stop();
                                     }
                                 }
@@ -163,6 +165,7 @@ namespace JabamiYumeko
                                     channel.GotHostSnapshot += GotHostSnapshotHandler;
                                     channel.GotServiceSnapshot += GotServiceSnapshotHandler;
                                     _channels[ip.Key] = channel;
+                                    _protocolMaid.AddTask(channel);
                                     channel.Start();
                                 }
                             }
@@ -198,7 +201,6 @@ namespace JabamiYumeko
                 Thread.Sleep(1000);
                 dbIndex++;
             }
-            _protocolMaid.RemoveConnectEndPoint(_serviceEndPoint);
             _protocolMaid.Stop();
         }
     }

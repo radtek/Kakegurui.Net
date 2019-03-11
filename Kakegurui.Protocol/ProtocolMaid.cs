@@ -16,7 +16,7 @@ namespace Kakegurui.Protocol
         /// 构造函数
         /// </summary>
         public ProtocolMaid()
-            : this("protocol maid")
+            : this("protocol_maid")
         {
 
         }
@@ -49,26 +49,12 @@ namespace Kakegurui.Protocol
                     Tag = socket.Value.Tag,
                     Transmit = socket.Value.Handler.TransmitSize,
                     Receive = socket.Value.Handler.ReceiveSize,
-                    Socket = socket.Key.Handle.ToInt32()
+                    LocalIp = BitConverter.ToUInt32(socket.Value.LocalEndPoint.Address.GetAddressBytes(), 0),
+                    LocalPort = Convert.ToUInt16(socket.Value.LocalEndPoint.Port),
+                    RemoteIp = BitConverter.ToUInt32(socket.Value.RemoteEndPoint.Address.GetAddressBytes(), 0),
+                    RemotePort = Convert.ToUInt16(socket.Value.RemoteEndPoint.Port)
                 };
-                try
-                {
-                    if (socket.Value.Socket.RemoteEndPoint != null)
-                    {
-                        status.RemoteIp = BitConverter.ToUInt32(((IPEndPoint)socket.Value.Socket.RemoteEndPoint).Address.GetAddressBytes(), 0);
-                        status.RemotePort = Convert.ToUInt16(((IPEndPoint)socket.Value.Socket.RemoteEndPoint).Port);
-                    }
-                }
-                catch (SocketException)
-                {
 
-                }
-
-                if (socket.Value.Socket.LocalEndPoint != null)
-                {
-                    status.LocalIp = BitConverter.ToUInt32(((IPEndPoint)socket.Value.Socket.LocalEndPoint).Address.GetAddressBytes(), 0);
-                    status.LocalPort = Convert.ToUInt16(((IPEndPoint)socket.Value.Socket.LocalEndPoint).Port);
-                }
                 cs.SocketInfo.Add(status);
             }
 
@@ -76,9 +62,8 @@ namespace Kakegurui.Protocol
             {
                 ThreadStatus status = new ThreadStatus
                 {
-                    Name = task.Name,
-                    TimeStamp = TimeStampConvert.ToTimeStamp(task.HitPoint),
-                    Time = task.HitPoint
+                    Name = task.Key.Name,
+                    TimeStamp = TimeStampConvert.ToTimeStamp(task.Key.HitPoint)
                 };
                 cs.ThreadInfo.Add(status);
             }

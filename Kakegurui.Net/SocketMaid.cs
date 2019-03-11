@@ -78,7 +78,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 线程集合
         /// </summary>
-        protected readonly ConcurrentBag<TaskObject> _tasks = new ConcurrentBag<TaskObject>();
+        protected readonly ConcurrentDictionary<TaskObject,object> _tasks = new ConcurrentDictionary<TaskObject,object>();
 
         /// <summary>
         /// 套接字集合
@@ -101,15 +101,10 @@ namespace Kakegurui.Net
         private readonly ConnectionTask _connection=new ConnectionTask();
 
         /// <summary>
-        /// 监控日志
-        /// </summary>
-        private readonly Logger _logger;
-
-        /// <summary>
         /// 构造函数
         /// </summary>
         public SocketMaid()
-            : this("socket maid")
+            : this("socket_maid")
         {
 
         }
@@ -122,22 +117,6 @@ namespace Kakegurui.Net
             :base(name)
         {
             _connection.Connected += ConnectedEventHandler;
-            _logger = new FileLogger(new AllFilter(), "Monitor");
-        }
-
-        /// <summary>
-        /// 开始异步等待客户端套接字
-        /// </summary>
-        /// <param name="item">套接字信息</param>
-        private void AcceptAsync(SocketItem item)
-        {
-            SocketAsyncEventArgs acceptArgs = new SocketAsyncEventArgs();
-            acceptArgs.Completed += AcceptedEventHandler;
-            acceptArgs.UserToken = item;
-            if (!item.Socket.AcceptAsync(acceptArgs))
-            {
-                AcceptedEventHandler(item.Socket, acceptArgs);
-            }
         }
 
         /// <summary>
@@ -147,11 +126,15 @@ namespace Kakegurui.Net
         /// <param name="e"></param>
         private void AcceptedEventHandler(object sender, SocketAsyncEventArgs e)
         {
-            AcceptAsync((SocketItem)e.UserToken);
-            if (e.AcceptSocket.RemoteEndPoint == null)
+            SocketItem item= (SocketItem)e.UserToken;
+            SocketAsyncEventArgs acceptArgs = new SocketAsyncEventArgs();
+            acceptArgs.Completed += AcceptedEventHandler;
+            acceptArgs.UserToken = item;
+            if (!item.Socket.AcceptAsync(acceptArgs))
             {
-                return;
+                AcceptedEventHandler(item.Socket, acceptArgs);
             }
+
             Socket listenSocket = (Socket)sender;
             SocketItem listenItem = ((SocketItem)e.UserToken);
             AcceptedEventArgs args = new AcceptedEventArgs
@@ -162,15 +145,18 @@ namespace Kakegurui.Net
             };
             Accepted?.Invoke(this, args);
 
-            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "accepted", e.AcceptSocket.Handle, e.AcceptSocket.RemoteEndPoint, listenSocket.LocalEndPoint);
             SocketItem acceptItem = new SocketItem
             {
                 Socket = e.AcceptSocket,
                 Type = SocketType.Accept,
                 Handler = args.Handler,
                 StartTime = DateTime.Now,
-                Tag = 0
+                Tag = 0,
+                LocalEndPoint = (IPEndPoint)e.AcceptSocket.LocalEndPoint,
+                RemoteEndPoint = (IPEndPoint)e.AcceptSocket.RemoteEndPoint
             };
+
+            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "accepted", e.AcceptSocket.Handle,item.RemoteEndPoint, item.LocalEndPoint);
             _sockets[e.AcceptSocket] = acceptItem;
             SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
             receiveArgs.Completed += ReceivedHandler;
@@ -181,6 +167,7 @@ namespace Kakegurui.Net
             {
                 ReceivedHandler(acceptItem.Socket, receiveArgs);
             }
+
         }
 
         /// <summary>
@@ -207,17 +194,29 @@ namespace Kakegurui.Net
                 if (item.Type == SocketType.Udp)
                 {
                     item.Handler?.Handle(socket, e.Buffer, e.BytesTransferred, (IPEndPoint)e.RemoteEndPoint);
-                    if (!socket.ReceiveFromAsync(e))
+                    try
                     {
-                        ReceivedHandler(socket,e);
+                        if (!socket.ReceiveFromAsync(e))
+                        {
+                            ReceivedHandler(socket, e);
+                        }
                     }
+                    catch (ObjectDisposedException)
+                    {
+                    }                  
                 }
                 else
                 {
                     item.Handler?.Handle(socket, e.Buffer, e.BytesTransferred);
-                    if (!socket.ReceiveAsync(e))
+                    try
                     {
-                        ReceivedHandler(socket, e);
+                        if (!socket.ReceiveAsync(e))
+                        {
+                            ReceivedHandler(socket, e);
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
                     }
                 }
             }
@@ -230,18 +229,18 @@ namespace Kakegurui.Net
         /// <param name="e"></param>
         protected virtual void ConnectedEventHandler(object sender, ConnectedEventArgs e)
         {
-            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.Socket.Handle, e.Socket.RemoteEndPoint, e.Socket.LocalEndPoint);
-
             SocketItem item = new SocketItem
             {
                 Socket = e.Socket,
                 Type = SocketType.Connect,
                 Handler = e.Handler,
                 StartTime = DateTime.Now,
-                EndPoint = (IPEndPoint)e.Socket.RemoteEndPoint
+                RemoteEndPoint = e.RemoteEndPoint,
+                LocalEndPoint = e.LocalEndPoint
             };
 
-            _endPoints[e.Socket.RemoteEndPoint] = item;
+            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.Socket.Handle, item.RemoteEndPoint, item.LocalEndPoint);
+            _endPoints[e.RemoteEndPoint] = item;
             _sockets[item.Socket] = item;
 
             SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
@@ -251,8 +250,9 @@ namespace Kakegurui.Net
             receiveArgs.UserToken = item;
             if (!item.Socket.ReceiveAsync(receiveArgs))
             {
-                ReceivedHandler(item.Socket,receiveArgs);
+                ReceivedHandler(item.Socket, receiveArgs);
             }
+
         }
 
         /// <summary>
@@ -271,16 +271,36 @@ namespace Kakegurui.Net
             }
         }
 
+        public void AddTask(TaskObject task)
+        {
+            _tasks[task]=null;
+        }
+
+        public void RemoveTask(TaskObject task)
+        {
+            _tasks.TryRemove(task, out object obj);
+        }
+
         /// <summary>
         /// 添加监听地址
         /// </summary>
-        /// <param name="endPoint">监听地址</param>
+        /// <param name="port">监听端口</param>
         /// <param name="handler">处理实例</param>
-        public void AddListenEndPoint(IPEndPoint endPoint, SocketHandler handler)
+        public void AddListenEndPoint(int port, SocketHandler handler)
         {
             Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
-            socket.Bind(endPoint);
-            socket.Listen(10);
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, port);
+            try
+            {
+                socket.Bind(endPoint);
+                socket.Listen(10);
+            }
+            catch (SocketException e)
+            {
+                socket.Close();
+                LogPool.Logger.LogInformation(e,"{0} {1}", "listen_error", endPoint.ToString());
+                return;
+            }
             LogPool.Logger.LogInformation("{0} {1} {2}", "listen", socket.Handle, endPoint.ToString());
             SocketItem item = new SocketItem
             {
@@ -289,10 +309,17 @@ namespace Kakegurui.Net
                 StartTime = DateTime.Now,
                 Tag = 0,
                 Type = SocketType.Listen,
-                EndPoint = endPoint
+                LocalEndPoint = endPoint,
+                RemoteEndPoint = new IPEndPoint(0,0)
             };
             _sockets[socket] = item;
-            AcceptAsync(item);
+            SocketAsyncEventArgs acceptArgs = new SocketAsyncEventArgs();
+            acceptArgs.Completed += AcceptedEventHandler;
+            acceptArgs.UserToken = item;
+            if (!item.Socket.AcceptAsync(acceptArgs))
+            {
+                AcceptedEventHandler(item.Socket, acceptArgs);
+            }
         }
 
         /// <summary>
@@ -330,22 +357,25 @@ namespace Kakegurui.Net
         /// 添加udp绑定地址
         /// </summary>
         /// <param name="handler">处理实例</param>
-        /// <param name="endPoint">绑定地址，默认为空，表示绑定任意地址，此时表示udp客户端</param>
+        /// <param name="port">绑定端口，默认为0，表示绑定任意端口，此时表示udp客户端</param>
         /// <returns>udp客户端套接字</returns>
-        public Socket AddBindEndPoint(SocketHandler handler, IPEndPoint endPoint=null)
+        public Socket AddBindEndPoint(SocketHandler handler, int port)
         {
             Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, ProtocolType.Udp);
-            if (endPoint == null)
+            IPEndPoint endPoint= new IPEndPoint(IPAddress.Any, port);
+            try
             {
-                endPoint = new IPEndPoint(IPAddress.Any, 0);
-                LogPool.Logger.LogInformation("{0} {1}", "udpclient", socket.Handle);
+                socket.Bind(endPoint);
             }
-            else
+            catch (SocketException e)
             {
-                LogPool.Logger.LogInformation("{0} {1} {2}", "bind", socket.Handle, endPoint.ToString());
+                socket.Close();
+                LogPool.Logger.LogInformation(e,"{0} {1}", "udpclient_error", socket.Handle);
+                return null;
             }
 
-            socket.Bind(endPoint);
+            LogPool.Logger.LogInformation("{0} {1} {2}", "bind", socket.Handle, endPoint.ToString());
+
             SocketItem item = new SocketItem
             {
                 Handler = handler,
@@ -353,7 +383,8 @@ namespace Kakegurui.Net
                 StartTime = DateTime.Now,
                 Tag = 0,
                 Type = SocketType.Udp,
-                EndPoint = endPoint
+                LocalEndPoint = endPoint,
+                RemoteEndPoint = new IPEndPoint(0, 0)
             };
 
             _endPoints[endPoint] = item;
@@ -362,11 +393,11 @@ namespace Kakegurui.Net
             SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
             receiveArgs.Completed += ReceivedHandler;
             receiveArgs.SetBuffer(new byte[BufferLength], 0, BufferLength);
-            receiveArgs.RemoteEndPoint = item.Socket.LocalEndPoint;
+            receiveArgs.RemoteEndPoint = item.LocalEndPoint;
             receiveArgs.UserToken = item;
             if (!item.Socket.ReceiveFromAsync(receiveArgs))
             {
-                ReceivedHandler(item.Socket,receiveArgs);
+                ReceivedHandler(item.Socket, receiveArgs);
             }
 
             return socket;
@@ -385,8 +416,8 @@ namespace Kakegurui.Net
                     "{0} {1} {2} {3} {4} {5} {6} {7} {8}",
                     reason,
                     socket.Handle,
-                    socket.LocalEndPoint?.ToString(),
-                    socket.RemoteEndPoint?.ToString(),
+                    item.LocalEndPoint?.ToString(),
+                    item.RemoteEndPoint?.ToString(),
                     item.StartTime.ToString("yyyy-MM-dd HH:mm:ss.fff"),
                     item.Tag,
                     item.Type,
@@ -405,12 +436,12 @@ namespace Kakegurui.Net
                 }
                 else if (item.Type == SocketType.Connect)
                 {
-                    if (_endPoints.TryGetValue(item.EndPoint, out SocketItem i2))
+                    if (_endPoints.TryGetValue(item.RemoteEndPoint, out SocketItem i2))
                     {
                         i2.Socket = null;
                     }
 
-                    _connection.ReportError(item.EndPoint);
+                    _connection.ReportError(item.RemoteEndPoint);
                 }
             }
         }
@@ -606,7 +637,7 @@ namespace Kakegurui.Net
             {
                 if (pair.Value.Type == SocketType.Accept)
                 {
-                    if (port == 0 || ((IPEndPoint) pair.Value.Socket.LocalEndPoint).Port == port)
+                    if (port == 0 || (pair.Value.LocalEndPoint).Port == port)
                     {
                         pair.Value.Handler?.SendTcp(pair.Key, buffer);
                     }
@@ -616,8 +647,8 @@ namespace Kakegurui.Net
 
         protected override void ActionCore()
         {
-            _tasks.Add(_connection);
-            _tasks.Add(this);
+            AddTask(this);
+            AddTask(_connection);
             _connection.Start();
             int monitorPollIndex = 0;
             while (!IsCancelled())
@@ -632,8 +663,8 @@ namespace Kakegurui.Net
                         {
                             builder.AppendFormat("{0} local:{1} remote:{2} tag:{3} t:{4} r:{5}\n",
                                 socket.Key.Handle,
-                                socket.Key.LocalEndPoint,
-                                socket.Key.RemoteEndPoint,
+                                socket.Value.LocalEndPoint,
+                                socket.Value.RemoteEndPoint,
                                 socket.Value.Tag,
                                 socket.Value.Handler?.TransmitSize,
                                 socket.Value.Handler?.ReceiveSize);
@@ -642,7 +673,7 @@ namespace Kakegurui.Net
                         {
                             builder.AppendFormat("{0} local:{1} tag:{2} t:{3} r:{4}\n",
                                 socket.Key.Handle,
-                                socket.Key.LocalEndPoint,
+                                socket.Value.LocalEndPoint,
                                 socket.Value.Tag,
                                 socket.Value.Handler?.TransmitSize,
                                 socket.Value.Handler?.ReceiveSize);
@@ -652,10 +683,9 @@ namespace Kakegurui.Net
 
                     foreach (var task in _tasks)
                     {
-                        builder.AppendFormat("{0} {1}\n", task.Name, task.HitPoint.ToString("yyyy-MM-dd HH:mm:ss.fff"));
+                        builder.AppendFormat("{0} {1}\n", task.Key.Name, task.Key.HitPoint.ToString("yyyy-MM-dd HH:mm:ss.fff"));
                     }
-                    LogPool.Logger.LogDebug(builder.ToString());
-                    _logger.LogInformation(builder.ToString());
+                    LogPool.Logger.LogTrace(builder.ToString());
                 }
 
                 ++monitorPollIndex;

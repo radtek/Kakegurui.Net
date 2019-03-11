@@ -27,7 +27,7 @@ namespace Kakegurui.Protocol
             }
             else
             {
-                int offset = head - start;
+                int offset = start - head;
                 int lessSize = buffer.Count - offset - head;
                 //长度小于协议头
                 if (lessSize < ProtocolHead.HeadSize)

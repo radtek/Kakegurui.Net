@@ -50,7 +50,7 @@ namespace Kakegurui.Core
             _date= DateTime.Today;
 
             //读取文件日志参数
-            _directory = AppConfig.ReadString("log.file.directory") ?? "../log/";
+            _directory = AppConfig.ReadString("log.file.directory") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"../log/");
             _holdDays = AppConfig.ReadInt32("log.file.holddays") ?? 0;
 
             _fs = new FileStream(

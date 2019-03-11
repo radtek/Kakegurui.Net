@@ -19,6 +19,16 @@ namespace Kakegurui.Net
         public Socket Socket { get; set; }
 
         /// <summary>
+        /// 套接字远程地址
+        /// </summary>
+        public IPEndPoint RemoteEndPoint { get; set; }
+
+        /// <summary>
+        /// 套接字本地地址
+        /// </summary>
+        public IPEndPoint LocalEndPoint { get; set; }
+
+        /// <summary>
         /// 套接字处理实例
         /// </summary>
         public SocketHandler Handler { get; set; }
@@ -36,7 +46,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 连接地址集合
         /// </summary>
-        private readonly ConcurrentDictionary<EndPoint, SocketItem> _endPoints = new ConcurrentDictionary<EndPoint, SocketItem>();
+        private readonly ConcurrentDictionary<IPEndPoint, SocketItem> _endPoints = new ConcurrentDictionary<IPEndPoint, SocketItem>();
 
         /// <summary>
         /// 条件变量
@@ -117,6 +127,8 @@ namespace Kakegurui.Net
                             Connected?.Invoke(this,new ConnectedEventArgs
                             {
                                 Socket = socket,
+                                RemoteEndPoint = (IPEndPoint)socket.RemoteEndPoint,
+                                LocalEndPoint = (IPEndPoint)socket.LocalEndPoint,
                                 Handler = pair.Value.Handler.Clone()
                             });
                             pair.Value.Socket = socket;

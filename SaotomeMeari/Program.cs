@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Net;
 using Kakegurui.Core;
+using Kakegurui.Protocol;
 
 namespace SaotomeMeari
 {

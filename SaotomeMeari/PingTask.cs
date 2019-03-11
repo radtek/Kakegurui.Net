@@ -50,7 +50,7 @@ namespace SaotomeMeari
         /// </summary>
         /// <param name="index">线程序号</param>
         public PingTask(int index) : 
-            base("ping channel"+index)
+            base("ping"+index)
         {
         }
 

@@ -50,8 +50,9 @@ namespace SaotomeMeari
         private ClusterWatcher _watcher;
 
         public DBTask() 
-            : base("db task")
+            : base("db")
         {
+            _protocolMaid.AddTask(this);
         }
 
 
@@ -99,6 +100,7 @@ namespace SaotomeMeari
             {
                 PingTask channel = new PingTask(i + 1);
                 channel.NoticingStatus += NoticingStatusEventHandler;
+                _protocolMaid.AddTask(channel);
                 channel.Start();
                 _channels.Add(channel);
             }

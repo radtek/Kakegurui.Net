@@ -68,8 +68,13 @@ namespace Kakegurui.Net
         public ushort Tag { get; set; }
 
         /// <summary>
-        /// 套接字地址 connect bind listen
+        /// 套接字远程地址
         /// </summary>
-        public IPEndPoint EndPoint { get; set; }
+        public IPEndPoint RemoteEndPoint { get; set; }
+
+        /// <summary>
+        /// 套接字本地地址
+        /// </summary>
+        public IPEndPoint LocalEndPoint { get; set; }
     };
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
 {
@@ -145,17 +146,26 @@ namespace Kakegurui.Core
         /// <returns>字节流长度</returns>
         public static int Deserialize(object value, List<byte> buffer,int offset=0)
         {
-            int size = 0;
-            foreach (var property in value.GetType().GetProperties().Where(p => p.GetCustomAttributesData().Count != 0).OrderBy(p1 => p1.GetCustomAttributesData()[0].ConstructorArguments[0].Value))
+            try
             {
-                if (property.CanWrite)
+                int size = 0;
+                foreach (var property in value.GetType().GetProperties().Where(p => p.GetCustomAttributesData().Count != 0).OrderBy(p1 => p1.GetCustomAttributesData()[0].ConstructorArguments[0].Value))
                 {
-                    var t = ToValue(property.PropertyType, buffer, offset+size);
-                    property.SetValue(value, t.Item1);
-                    size += t.Item2;
+                    if (property.CanWrite)
+                    {
+                        var t = ToValue(property.PropertyType, buffer, offset + size);
+                        property.SetValue(value, t.Item1);
+                        size += t.Item2;
+                    }
                 }
+                return size;
             }
-            return size;
+            catch (Exception e)
+            {
+                LogPool.Logger.LogError(e,"{0} {1}", offset, ByteConvert.ToHex(buffer?.ToArray()));
+                return 0;
+            }
+           
         }
 
         /// <summary>
