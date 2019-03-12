@@ -97,7 +97,7 @@ namespace JabamiYumeko
                 }
                 catch (SocketException e)
                 {
-                    LogPool.Logger.LogInformation(e, "ssh control");
+                    LogPool.Logger.LogInformation(e, "ssh control {0}:{1} {2} {3}",_host.Ip,_host.Port,_host.UserName,_host.Password);
                     return e.Message;
                 }
                 finally
@@ -166,7 +166,7 @@ namespace JabamiYumeko
                         }
                         catch (SocketException e)
                         {
-                            LogPool.Logger.LogInformation(e, "ssh error");
+                            LogPool.Logger.LogInformation(e, "ssh error {0}:{1} {2} {3}", _host.Ip, _host.Port, _host.UserName, _host.Password);
                         }
                         finally
                         {
