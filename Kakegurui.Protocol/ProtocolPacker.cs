@@ -40,10 +40,42 @@ namespace Kakegurui.Protocol
     }
 
     /// <summary>
+    /// 协议基类
+    /// </summary>
+    public abstract class Protocol
+    {
+        /// <summary>
+        /// 协议编号
+        /// </summary>
+        public abstract byte Id { get; }
+    }
+
+    /// <summary>
     /// 协议包装
     /// </summary>
     public class ProtocolPacker
     {
+
+        /// <summary>
+        /// 封包请求协议
+        /// </summary>
+        /// <param name="protocol">协议</param>
+        /// <returns>第一个字段表示请求字节流，第二个字段表示时间戳</returns>
+        public static Tuple<List<byte>, long> Request(Protocol protocol)
+        {
+            List<byte> content = ByteFormatter.Serialize(protocol);
+
+            ProtocolHead head = new ProtocolHead()
+            {
+                Id = protocol.Id,
+                ContentSize = Convert.ToUInt16(content.Count),
+                TimeStamp = TimeStampConvert.ToTimeStamp()
+            };
+            List<byte> buffer = ByteFormatter.Serialize(head);
+            buffer.AddRange(content);
+            return new Tuple<List<byte>, long>(buffer, head.TimeStamp);
+        }
+
         /// <summary>
         /// 封包请求协议
         /// </summary>

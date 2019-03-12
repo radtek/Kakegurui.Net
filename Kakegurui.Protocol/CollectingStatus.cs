@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
@@ -50,6 +49,7 @@ namespace Kakegurui.Protocol
         /// </summary>
         [SerializeIndex(7)]
         public ulong Receive { get; set; }
+
     }
 
     /// <summary>
@@ -73,17 +73,17 @@ namespace Kakegurui.Protocol
     /// <summary>
     /// 请求状态协议
     /// </summary>
-    public class CollectStatus_Request
+    public class CollectStatus_Request:Protocol
     {
-        public static byte Id => 0x01;
+        public override byte Id => 0x01;
     }
 
     /// <summary>
     /// 响应状态协议
     /// </summary>
-    public class CollectStatus_Response
+    public class CollectStatus_Response:Protocol
     {
-        public static byte Id => 0x02;
+        public override byte Id => 0x02;
 
         /// <summary>
         /// 套接字状态集合

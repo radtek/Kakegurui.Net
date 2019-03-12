@@ -66,7 +66,7 @@ namespace Kakegurui.Protocol
                 };
                 cs.ThreadInfo.Add(status);
             }
-            e.ResponseBuffer = ProtocolPacker.Response(CollectStatus_Response.Id, e.TimeStamp, cs);
+            e.ResponseBuffer = ProtocolPacker.Response(new CollectStatus_Response().Id, e.TimeStamp, cs);
         }
 
         /// <summary>

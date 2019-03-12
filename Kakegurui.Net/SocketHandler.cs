@@ -317,8 +317,14 @@ namespace Kakegurui.Net
                                     if (node.Value.ProtocolId == packet.ProtocolId && node.Value.TimeStamp == packet.TimeStamp)
                                     {
                                         node.Value.Handle(_residueBuffer, packet.Offset, packet.Size);
+                                        LinkedListNode<ReceiveAsyncHandler> temp = node;
+                                        node = node.Next;
+                                        _handlers.Remove(temp);
                                     }
-                                    node = node.Next;
+                                    else
+                                    {
+                                        node = node.Next;
+                                    }
                                 }
                             }
                         });
