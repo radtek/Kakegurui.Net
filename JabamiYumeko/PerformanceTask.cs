@@ -52,18 +52,18 @@ namespace JabamiYumeko
         /// <summary>
         /// 获取主机快照事件
         /// </summary>
-        public event EventHandler<Host> GotHostSnapshot;
+        public event EventHandler<GotHostSnapshotEventArgs> GotHostSnapshot;
 
         /// <summary>
         /// 获取服务快照事件
         /// </summary>
-        public event EventHandler<Service> GotServiceSnapshot;
+        public event EventHandler<GotServiceSnapshotEventArgs> GotServiceSnapshot;
 
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="host">主机信息</param>
-        protected PerformanceTask(Host host) : base("performance_"+host.Ip)
+        protected PerformanceTask(Host host) : base("performance_"+ host.Ip)
         {
             _host = host;
         }
@@ -148,13 +148,19 @@ namespace JabamiYumeko
                             host.Status = (byte)HostStatus.Connection;
                             host.TimeStamp = TimeStampConvert.ToTimeStamp();
                             
-                            GotHostSnapshot?.Invoke(this, host);
+                            GotHostSnapshot?.Invoke(this, new GotHostSnapshotEventArgs
+                            {
+                                Protocol = host
+                            });
 
                             foreach (Service service in _services)
                             {
                                 FillServiceCore(client, service);
                                 service.TimeStamp = TimeStampConvert.ToTimeStamp();
-                                GotServiceSnapshot?.Invoke(this, service);
+                                GotServiceSnapshot?.Invoke(this, new GotServiceSnapshotEventArgs
+                                {
+                                    Protocol = service
+                                });
                             }
 
                         }

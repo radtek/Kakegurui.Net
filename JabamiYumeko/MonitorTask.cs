@@ -52,9 +52,10 @@ namespace JabamiYumeko
         /// <param name="e"></param>
         private void GotMonitorProtocolEventHandler(object sender,GotProtocolEventArgs e)
         {
-            if (e.ProtocolId == ControlService_Request.Id)
+            ControlService_Request config = new ControlService_Request();
+            if (e.ProtocolId == config.Id)
             {
-                ControlService_Request config = new ControlService_Request();
+               
                 ByteFormatter.Deserialize(config, e.Buffer, e.Offset+ProtocolHead.HeadSize);
                 ControlService_Response response = new ControlService_Response
                 {
@@ -62,7 +63,7 @@ namespace JabamiYumeko
                         ? channel.ControlService(config)
                         : PerformanceTask.UnknownIp
                 };
-                e.ResponseBuffer = ProtocolPacker.Response(ControlService_Response.Id, e.TimeStamp, response);
+                e.ResponseBuffer = ProtocolPacker.Response(e.TimeStamp, response);
             }
         }
 
@@ -71,9 +72,9 @@ namespace JabamiYumeko
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void GotHostSnapshotHandler(object sender, Host e)
+        private void GotHostSnapshotHandler(object sender, GotHostSnapshotEventArgs e)
         {
-            _protocolMaid.Notice(ProtocolPacker.Request(Host.Id, e).Item1);   
+            _protocolMaid.Notice(ProtocolPacker.Request(e.Protocol).Item1);   
         }
 
         /// <summary>
@@ -81,9 +82,9 @@ namespace JabamiYumeko
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void GotServiceSnapshotHandler(object sender, Service e)
+        private void GotServiceSnapshotHandler(object sender, GotServiceSnapshotEventArgs e)
         {
-            _protocolMaid.Notice(ProtocolPacker.Request(Service.Id, e).Item1);
+            _protocolMaid.Notice(ProtocolPacker.Request(e.Protocol).Item1);
         }
 
         protected override void ActionCore()

@@ -77,44 +77,18 @@ namespace Kakegurui.Protocol
         }
 
         /// <summary>
-        /// 封包请求协议
-        /// </summary>
-        /// <param name="id">协议编号</param>
-        /// <param name="data">协议数据</param>
-        /// <returns>第一个字段表示请求字节流，第二个字段表示时间戳</returns>
-        public static Tuple<List<byte>,long> Request(byte id, object data = null)
-        {
-            List<byte> content = data == null ?
-                new List<byte>() :
-                ByteFormatter.Serialize(data);
-          
-            ProtocolHead head = new ProtocolHead()
-            {
-                Id = id,
-                ContentSize = Convert.ToUInt16(content.Count),
-                TimeStamp = TimeStampConvert.ToTimeStamp()
-            };
-            List<byte> buffer = ByteFormatter.Serialize(head);
-            buffer.AddRange(content);
-            return new Tuple<List<byte>, long>(buffer, head.TimeStamp);
-        }
-
-        /// <summary>
         /// 封包响应协议
         /// </summary>
-        /// <param name="id">协议编号</param>
         /// <param name="timeStamp">发送时间戳</param>
-        /// <param name="data">响应数据</param>
+        /// <param name="protocol">响应协议</param>
         /// <returns>响应字节流</returns>
-        public static List<byte> Response(byte id,long timeStamp, object data = null)
+        public static List<byte> Response(long timeStamp, Protocol protocol)
         {
-            List<byte> content = data == null ?
-                new List<byte>() :
-                ByteFormatter.Serialize(data);
+            List<byte> content = ByteFormatter.Serialize(protocol);
 
             ProtocolHead head = new ProtocolHead()
             {
-                Id = id,
+                Id = protocol.Id,
                 ContentSize = Convert.ToUInt16(content.Count),
                 TimeStamp = timeStamp
             };

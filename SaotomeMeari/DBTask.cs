@@ -63,7 +63,7 @@ namespace SaotomeMeari
         /// <param name="e"></param>
         private void NoticingStatusEventHandler(object sender, NoticingStatusEventArgs e)
         {
-            _protocolMaid.SendTcp(_serviceEndPoint, ProtocolPacker.Request(NoticingStatusEventArgs.Id,e).Item1);
+            _protocolMaid.SendTcp(_serviceEndPoint, ProtocolPacker.Request(e.Protocol).Item1);
         }
 
 

@@ -66,7 +66,7 @@ namespace Kakegurui.Protocol
                 };
                 cs.ThreadInfo.Add(status);
             }
-            e.ResponseBuffer = ProtocolPacker.Response(new CollectStatus_Response().Id, e.TimeStamp, cs);
+            e.ResponseBuffer = ProtocolPacker.Response(e.TimeStamp, cs);
         }
 
         /// <summary>
@@ -98,7 +98,7 @@ namespace Kakegurui.Protocol
                     Result = Convert.ToByte(result),
                     Buffer = new List<byte>()
                 };
-                e.ResponseBuffer = ProtocolPacker.Response(Shoot_Response.Id, e.TimeStamp, response);
+                e.ResponseBuffer = ProtocolPacker.Response(e.TimeStamp, response);
             }
         }
 

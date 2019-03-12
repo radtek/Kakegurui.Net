@@ -5,9 +5,9 @@ namespace Kakegurui.Protocol
     /// <summary>
     /// 通知字节流协议
     /// </summary>
-    public class Notice_Request
+    public class Notice_Request:Protocol
     {
-        public static byte Id => 0x05;
+        public override byte Id => 0x05;
 
         /// <summary>
         /// 远程地址

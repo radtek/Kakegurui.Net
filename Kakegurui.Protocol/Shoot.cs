@@ -110,9 +110,9 @@ namespace Kakegurui.Protocol
     /// <summary>
     /// 转发响应协议
     /// </summary>
-    public class Shoot_Response
+    public class Shoot_Response:Protocol
     {
-        public static byte Id => 0x04;
+        public override byte Id => 0x04;
 
         /// <summary>
         /// 转发结果

@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Threading;
 using Kakegurui.Core;
+using Kakegurui.Protocol;
 using Microsoft.Extensions.Logging;
 
 namespace SaotomeMeari
@@ -14,7 +15,15 @@ namespace SaotomeMeari
     /// </summary>
     public class NoticingStatusEventArgs : EventArgs
     {
-        public static byte Id => 0xA1;
+        public NoticeStatus Protocol { get; set; }
+    }
+
+    /// <summary>
+    /// 通知主机状态协议
+    /// </summary>
+    public class NoticeStatus : Protocol
+    {
+        public override byte Id => 0xA1;
 
         /// <summary>
         /// 设备地址
@@ -92,8 +101,11 @@ namespace SaotomeMeari
                         LogPool.Logger.LogInformation("notice {0} {1}", address.ToString(), result);
                         NoticingStatus?.Invoke(this, new NoticingStatusEventArgs
                         {
-                            Ip = address.ToString(),
-                            Status = Convert.ToByte(result==IPStatus.Success?0x01:0x02)
+                            Protocol=new NoticeStatus
+                            {
+                                Ip = address.ToString(),
+                                Status = Convert.ToByte(result == IPStatus.Success ? 0x01 : 0x02)
+                            }
                         });
                     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Kakegurui.Core;
+using Kakegurui.Protocol;
 
 namespace JabamiYumeko
 {
@@ -53,12 +54,13 @@ namespace JabamiYumeko
         [SerializeIndex(4)]
         public uint Used { get; set; }
     }
+
     /// <summary>
     /// 主机
     /// </summary>
-    public class Host : EventArgs
+    public class Host : Protocol
     {
-        public static byte Id => 0xB1;
+        public override byte Id => 0xB1;
 
         /// <summary>
         /// 主机地址
@@ -169,6 +171,14 @@ namespace JabamiYumeko
         /// </summary>
         [SerializeIndex(15)]
         public List<HardDisk> Disks { get; set; }
+    }
+
+    /// <summary>
+    /// 主机
+    /// </summary>
+    public class GotHostSnapshotEventArgs : EventArgs
+    {
+        public Host Protocol { get; set; }
     }
 };
 

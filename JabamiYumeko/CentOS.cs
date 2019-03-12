@@ -174,7 +174,7 @@ namespace JabamiYumeko
         /// <param name="service">用于设置服务快照信息的实例</param>
         private void FillStatus(SshClient client, Service service)
         {
-            string result=client.RunCommand(string.Format("cat /proc/{0}/status",service.Pid)).Execute();
+            string result=client.RunCommand(string.Format("cat /proc/{0}/status", service.Pid)).Execute();
             string[] rows = result.Split("\n", StringSplitOptions.RemoveEmptyEntries);
             foreach (string row in rows)
             {

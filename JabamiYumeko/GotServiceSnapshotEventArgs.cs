@@ -1,8 +1,12 @@
 ﻿using System;
 using Kakegurui.Core;
+using Kakegurui.Protocol;
 
 namespace JabamiYumeko
 {
+    /// <summary>
+    /// 控制服务参数
+    /// </summary>
     public enum ServiceConfig : byte
     {
         Start = 0,
@@ -12,7 +16,9 @@ namespace JabamiYumeko
         Demand = 4
     };
 
-    //服务操作
+    /// <summary>
+    /// 服务状态
+    /// </summary>
     public enum ServiceStatus : byte
     {
         Unknown = 0,
@@ -20,64 +26,78 @@ namespace JabamiYumeko
         Stopped = 2
     };
 
-    public class Service : EventArgs
+    /// <summary>
+    /// 服务
+    /// </summary>
+    public class Service : Protocol
     {
-        public static byte Id => 0xB3;
+        public override byte Id => 0xB3;
 
         //服务主机地址
         [SerializeIndex(1)]
-        public string Ip{get;set;}
+        public string Ip { get; set; }
         //服务名称
         [SerializeIndex(2)]
-        public string Name {get;set;}
+        public string Name { get; set; }
 
         //当前查询的时间戳
         [SerializeIndex(3)]
-        public long TimeStamp {get;set;}
+        public long TimeStamp { get; set; }
         //服务状态
         [SerializeIndex(4)]
-        public byte Status {get;set;}
+        public byte Status { get; set; }
         //服务参数
         [SerializeIndex(5)]
-        public byte Config {get;set;}
+        public byte Config { get; set; }
         //服务进程号
         [SerializeIndex(6)]
-        public int Pid {get;set;}
+        public int Pid { get; set; }
         //线程数
         [SerializeIndex(7)]
         public short ThreadCount { get; set; }
         //cpu使用率
         [SerializeIndex(8)]
-        public float CPU_Used {get;set;}
+        public float CPU_Used { get; set; }
         //虚拟内存峰值(KB)
         [SerializeIndex(9)]
-        public uint Vm_Peak {get;set;}
+        public uint Vm_Peak { get; set; }
         //虚拟内存(KB)
         [SerializeIndex(10)]
         public uint Vm_Used { get; set; }
         //物理内存峰值(KB)
         [SerializeIndex(11)]
-        public uint Mem_Peak {get;set;}
+        public uint Mem_Peak { get; set; }
         //物理内存(KB)
         [SerializeIndex(12)]
-        public uint Mem_Used {get;set;}
+        public uint Mem_Used { get; set; }
         //磁盘写入kb/s
         [SerializeIndex(13)]
-        public uint Disk_Write {get;set;}
+        public uint Disk_Write { get; set; }
         //磁盘读取kb/s
         [SerializeIndex(14)]
-        public uint Disk_Read {get;set;}
+        public uint Disk_Read { get; set; }
         //网络发送(kb/s)
         [SerializeIndex(15)]
-        public uint Network_Transmit {get;set;}
+        public uint Network_Transmit { get; set; }
         //网络接收(kb/s)
         [SerializeIndex(16)]
-        public uint Network_Receive {get;set;}
+        public uint Network_Receive { get; set; }
     }
 
-    public class ControlService_Request
+    /// <summary>
+    /// 获取到服务快照事件参数
+    /// </summary>
+    public class GotServiceSnapshotEventArgs : EventArgs
     {
-        public static byte Id => 0xB5;
+        public Service Protocol { get; set; }
+    }
+
+    /// <summary>
+    /// 控制服务请求
+    /// </summary>
+    public class ControlService_Request:Protocol
+    {
+        public override byte Id => 0xB5;
         [SerializeIndex(1)]
         public string Ip { get; set; }
         [SerializeIndex(2)]
@@ -86,9 +106,12 @@ namespace JabamiYumeko
         public byte Op { get; set; }
     }
 
-    public class ControlService_Response
+    /// <summary>
+    /// 控制服务响应
+    /// </summary>
+    public class ControlService_Response : Protocol
     {
-        public static byte Id => 0xB6;
+        public override byte Id => 0xB6;
         [SerializeIndex(1)]
         public string Result { get; set; }
     }
