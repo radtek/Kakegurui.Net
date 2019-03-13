@@ -145,7 +145,7 @@ namespace JabamiYumeko
                             Host host = new Host();
                             FillHostCore(client, host);
                             host.Ip = _host.Ip;
-                            host.Status = (byte)HostStatus.Connection;
+                            host.Status = Convert.ToByte(HostStatus.Connection);
                             host.TimeStamp = TimeStampConvert.ToTimeStamp();
                             
                             GotHostSnapshot?.Invoke(this, new GotHostSnapshotEventArgs

@@ -155,7 +155,7 @@ namespace Kakegurui.Net
                 RemoteEndPoint = (IPEndPoint)e.AcceptSocket.RemoteEndPoint
             };
 
-            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "accepted", e.AcceptSocket.Handle,item.RemoteEndPoint, item.LocalEndPoint);
+            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "accepted", e.AcceptSocket.Handle, acceptItem.RemoteEndPoint, acceptItem.LocalEndPoint);
             _sockets[e.AcceptSocket] = acceptItem;
             SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
             receiveArgs.Completed += ReceivedHandler;

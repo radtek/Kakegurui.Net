@@ -12,8 +12,8 @@ namespace JabamiYumeko
     {
         Unknown = -1,
         Windows2008 = 0,
-        CentOS7 = 1,
-        CentOS6 = 2
+        CentOS6 = 1,
+        CentOS7 = 2
     };
 
     /// <summary>
