@@ -34,6 +34,7 @@ namespace Kakegurui.Core
             Name = name;
             _task = new Task(Action);
             _cancelled = false;
+            HitPoint=DateTime.Now;
         }
 
         /// <summary>

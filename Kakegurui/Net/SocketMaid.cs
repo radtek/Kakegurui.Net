@@ -436,18 +436,25 @@ namespace Kakegurui.Net
                 //删除字典
                 if (item.Type == SocketType.Accept)
                 {
-                    if (_tags.TryRemove(item.Tag, out SocketItem i1))
+                    foreach (var pair in _tags)
                     {
-                        i1.Tag = 0;
+                        if (pair.Value == item)
+                        {
+                            _tags.TryRemove(pair.Key,out SocketItem i1);
+                            break;
+                        }
                     }
                 }
                 else if (item.Type == SocketType.Connect)
                 {
-                    if (_endPoints.TryGetValue(item.RemoteEndPoint, out SocketItem i2))
+                    foreach (var pair in _endPoints)
                     {
-                        i2.Socket = null;
+                        if (pair.Value == item)
+                        {
+                            _endPoints.TryRemove(pair.Key, out SocketItem i2);
+                            break;
+                        }
                     }
-
                     _connection.ReportError(item.RemoteEndPoint);
                 }
             }

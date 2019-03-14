@@ -4,52 +4,11 @@ using Kakegurui.Core;
 
 namespace Kakegurui.Net
 {
-    /// <summary>
-    /// 接收数据执行接口
-    /// </summary>
-    public abstract class ReceiveAsyncHandler
-    {
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="protocolId">协议编号</param>
-        /// <param name="timeStamp">时间戳</param>
-        protected ReceiveAsyncHandler(int protocolId, long timeStamp)
-        {
-            ProtocolId = protocolId;
-            TimeStamp = timeStamp;
-        }
-
-        /// <summary>
-        /// 时间戳
-        /// </summary>
-        public long TimeStamp { get; }
-
-        /// <summary>
-        /// 协议编号
-        /// </summary>
-        public int ProtocolId { get; }
-
-        /// <summary>
-        /// 是否处理完成
-        /// </summary>
-        /// <returns>处理完成返回true，否则返回false</returns>
-        public abstract bool IsCompleted();
-
-        /// <summary>
-        /// 处理接收数据
-        /// </summary>
-        /// <param name="buffer">字节流</param>
-        /// <param name="offset">偏移量</param>
-        /// <param name="size">字节流长度</param>
-        public abstract void Handle(List<byte> buffer, int offset, int size);
-
-    }
 
     /// <summary>
     /// 接收到数据后执行通知处理
     /// </summary>
-    public class NoticeHandler:ReceiveAsyncHandler
+    public class NoticeHandler : ReceiveAsyncHandler
     {
         /// <summary>
         /// 条件变量
@@ -71,7 +30,7 @@ namespace Kakegurui.Net
         /// </summary>
         /// <param name="protocolId">协议编号</param>
         public NoticeHandler(int protocolId)
-            :this(protocolId,0)
+            : this(protocolId, 0)
         {
 
         }
@@ -82,7 +41,7 @@ namespace Kakegurui.Net
         /// <param name="protocolId">协议编号</param>
         /// <param name="timeStamp">时间戳</param>
         public NoticeHandler(int protocolId, long timeStamp)
-            :base(protocolId,timeStamp)
+            : base(protocolId, timeStamp)
         {
             _isNoticed = false;
         }
@@ -93,7 +52,7 @@ namespace Kakegurui.Net
         /// <returns>返回true表示收到回复，返回false表示超时</returns>
         public bool Wait()
         {
-            bool result=_event.WaitOne(AppConfig.LockTimeout);
+            bool result = _event.WaitOne(AppConfig.LockTimeout);
             _isNoticed = true;
             return result;
         }
@@ -105,7 +64,7 @@ namespace Kakegurui.Net
 
         public override void Handle(List<byte> buffer, int offset, int size)
         {
-            Buffer=new List<byte>(buffer.GetRange(offset, size));
+            Buffer = new List<byte>(buffer.GetRange(offset, size));
             _event.Set();
             _isNoticed = true;
         }
