@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
-using Kakegurui.Core;
 
 namespace Kakegurui.Net
 {
