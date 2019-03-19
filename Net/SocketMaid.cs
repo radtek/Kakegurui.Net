@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,51 +11,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Net
 {
-    /// <summary>
-    /// 客户端连入事件参数
-    /// </summary>
-    public class AcceptedEventArgs : EventArgs
-    {
-        /// <summary>
-        /// 监听套接字
-        /// </summary>
-        public Socket ListenSocket { get; set; }
-        /// <summary>
-        /// 客户端套接字
-        /// </summary>
-        public Socket AcceptSocket { get; set; }
-        /// <summary>
-        /// 处理实例
-        /// </summary>
-        public SocketHandler Handler { get; set; }
-    }
-
-    /// <summary>
-    /// 关闭套接字事件参数
-    /// </summary>
-    public class ClosedEventArgs : EventArgs
-    {
-        /// <summary>
-        /// 套接字
-        /// </summary>
-        public Socket Socket { get; set; }
-
-        /// <summary>
-        /// 套接字类型
-        /// </summary>
-        public SocketType Type { get; set; }
-    }
-
-    /// <summary>
-    /// 确定客户端套接字编号事件参数
-    /// </summary>
-    public class TagConfirmedEventArgs : EventArgs
-    {
-        public Socket Socket { get; set; }
-        public ushort Tag { get; set; }
-        public string LogName { get; set; }
-    }
-
     /// <summary>
     /// 套接字通道
     /// </summary>
@@ -68,12 +24,17 @@ namespace Kakegurui.Net
         /// <summary>
         /// 客户端连入事件
         /// </summary>
-        public event EventHandler<AcceptedEventArgs> Accepted;
+        public event EventHandler<SocketEventArgs> Accepted;
+
+        /// <summary>
+        /// 连入到服务端事件
+        /// </summary>
+        public event EventHandler<SocketEventArgs> Connected;
 
         /// <summary>
         /// 关闭套接字事件
         /// </summary>
-        public event EventHandler<ClosedEventArgs> Closed;
+        public event EventHandler<SocketEventArgs> Closed;
 
         /// <summary>
         /// 线程集合
@@ -84,16 +45,6 @@ namespace Kakegurui.Net
         /// 套接字集合
         /// </summary>
         protected readonly ConcurrentDictionary<Socket,SocketItem> _sockets=new ConcurrentDictionary<Socket, SocketItem>();
-
-        /// <summary>
-        /// 客户端套接字集合
-        /// </summary>
-        private readonly ConcurrentDictionary<ushort, SocketItem> _tags = new ConcurrentDictionary<ushort, SocketItem>();
-
-        /// <summary>
-        /// 连接地址集合
-        /// </summary>
-        private readonly ConcurrentDictionary<EndPoint, SocketItem> _endPoints = new ConcurrentDictionary<EndPoint, SocketItem>();
 
         /// <summary>
         /// 连接线程
@@ -120,6 +71,28 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
+        /// 连接到服务事件执行函数
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        protected virtual void ConnectedEventHandler(object sender, SocketEventArgs e)
+        {
+            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.Item.Socket.Handle, e.Item.RemoteEndPoint, e.Item.LocalEndPoint);
+            _sockets[e.Item.Socket] = e.Item;
+
+            SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
+            receiveArgs.Completed += ReceivedHandler;
+            receiveArgs.SetBuffer(new byte[65536], 0, 65536);
+            receiveArgs.AcceptSocket = e.Item.Socket;
+            receiveArgs.UserToken = e.Item;
+            if (!e.Item.Socket.ReceiveAsync(receiveArgs))
+            {
+                ReceivedHandler(e.Item.Socket, receiveArgs);
+            }
+            Connected?.Invoke(this,e);
+        }
+
+        /// <summary>
         /// 等待套接字事件函数
         /// </summary>
         /// <param name="sender"></param>
@@ -135,22 +108,14 @@ namespace Kakegurui.Net
                 AcceptedEventHandler(item.Socket, acceptArgs);
             }
 
-            Socket listenSocket = (Socket)sender;
             SocketItem listenItem = ((SocketItem)e.UserToken);
-            AcceptedEventArgs args = new AcceptedEventArgs
-            {
-                ListenSocket = listenSocket,
-                AcceptSocket = e.AcceptSocket,
-                Handler = listenItem.Handler?.Clone()
-            };
-
             SocketItem acceptItem = new SocketItem
             {
                 Socket = e.AcceptSocket,
                 Type = SocketType.Accept,
-                Handler = args.Handler,
+                Handler = listenItem.Handler?.Clone(),
                 StartTime = DateTime.Now,
-                Tag = 0,
+                Tag = ((IPEndPoint)e.AcceptSocket.LocalEndPoint).Port.ToString(),
                 LocalEndPoint = (IPEndPoint)e.AcceptSocket.LocalEndPoint,
                 RemoteEndPoint = (IPEndPoint)e.AcceptSocket.RemoteEndPoint
             };
@@ -166,6 +131,11 @@ namespace Kakegurui.Net
             {
                 ReceivedHandler(acceptItem.Socket, receiveArgs);
             }
+
+            SocketEventArgs args = new SocketEventArgs
+            {
+                Item=acceptItem
+            };
             Accepted?.Invoke(this, args);
         }
 
@@ -181,10 +151,9 @@ namespace Kakegurui.Net
             if (e.BytesTransferred == 0)
             {
                 RemoveSocket(item.Socket, "closed");
-                Closed?.Invoke(this, new ClosedEventArgs
+                Closed?.Invoke(this, new SocketEventArgs
                 {
-                    Socket = item.Socket,
-                    Type = item.Type
+                   Item=item
                 });
             }
             else
@@ -217,56 +186,6 @@ namespace Kakegurui.Net
                     {
                     }
                 }
-            }
-        }
-
-        /// <summary>
-        /// 连接到服务事件执行函数
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        protected virtual void ConnectedEventHandler(object sender, ConnectedEventArgs e)
-        {
-            SocketItem item = new SocketItem
-            {
-                Socket = e.Socket,
-                Type = SocketType.Connect,
-                Handler = e.Handler,
-                StartTime = DateTime.Now,
-                RemoteEndPoint = e.RemoteEndPoint,
-                LocalEndPoint = e.LocalEndPoint
-            };
-
-            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.Socket.Handle, item.RemoteEndPoint, item.LocalEndPoint);
-            _endPoints[e.RemoteEndPoint] = item;
-            _sockets[item.Socket] = item;
-
-            SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
-            receiveArgs.Completed += ReceivedHandler;
-            receiveArgs.SetBuffer(new byte[65536], 0, 65536);
-            receiveArgs.AcceptSocket = item.Socket;
-            receiveArgs.UserToken = item;
-            if (!item.Socket.ReceiveAsync(receiveArgs))
-            {
-                ReceivedHandler(item.Socket, receiveArgs);
-            }
-
-        }
-
-        /// <summary>
-        /// 设置套接字标记
-        /// </summary>
-        /// <param name="socket">套接字</param>
-        /// <param name="tag">套接字标记</param>
-        /// <param name="logName">日志名</param>
-        public void SetTag(Socket socket,ushort tag,string logName)
-        {
-            if (_sockets.TryGetValue(socket, out SocketItem item))
-            {
-                item.Tag = tag;
-                _tags[tag] = item;
-                item.Handler?.SetLogger(string.Format("{0}_{1}", logName, tag));
-                LogPool.Logger.LogInformation("{0} {1} {2}", "tag", tag, socket.Handle);
             }
         }
 
@@ -314,7 +233,7 @@ namespace Kakegurui.Net
                 Handler = handler,
                 Socket = socket,
                 StartTime = DateTime.Now,
-                Tag = 0,
+                Tag = null,
                 Type = SocketType.Listen,
                 LocalEndPoint = endPoint,
                 RemoteEndPoint = new IPEndPoint(0,0)
@@ -337,27 +256,12 @@ namespace Kakegurui.Net
         public void AddConnectEndPoint(IPEndPoint endPoint, SocketHandler handler)
         {
             LogPool.Logger.LogInformation("{0} {1}", "add_connect", endPoint.ToString());
-            _connection.AddEndPoint(endPoint, handler);
-        }
-
-        /// <summary>
-        /// 移除连接地址
-        /// </summary>
-        /// <param name="endPoint">连接地址</param>
-        public void RemoveConnectEndPoint(IPEndPoint endPoint)
-        {
-            if (_endPoints.TryRemove(endPoint, out SocketItem item))
+            _connection.AddEndPoint(new SocketItem
             {
-                if (item.Socket == null)
-                {
-                    LogPool.Logger.LogInformation("{0} {1}", "remove_connect", endPoint.ToString());
-                }
-                else
-                {
-                    RemoveSocket(item.Socket, "remove_connect");
-                    _connection.RemoveEndPoint(endPoint);
-                }
-            }
+                RemoteEndPoint = endPoint,
+                Tag = endPoint.ToString(),
+                Handler = handler
+            });
         }
 
         /// <summary>
@@ -366,7 +270,7 @@ namespace Kakegurui.Net
         /// <param name="handler">处理实例</param>
         /// <param name="port">绑定端口，默认为0，表示绑定任意端口，此时表示udp客户端</param>
         /// <returns>udp客户端套接字</returns>
-        public Socket AddBindEndPoint(SocketHandler handler, int port)
+        public Socket AddBindEndPoint(SocketHandler handler, int port=0)
         {
             Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, ProtocolType.Udp);
             IPEndPoint endPoint= new IPEndPoint(IPAddress.Any, port);
@@ -388,13 +292,12 @@ namespace Kakegurui.Net
                 Handler = handler,
                 Socket = socket,
                 StartTime = DateTime.Now,
-                Tag = 0,
                 Type = SocketType.Udp,
                 LocalEndPoint = endPoint,
+                Tag = endPoint.ToString(),
                 RemoteEndPoint = new IPEndPoint(0, 0)
             };
 
-            _endPoints[endPoint] = item;
             _sockets[item.Socket] = item;
 
             SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
@@ -433,31 +336,23 @@ namespace Kakegurui.Net
 
                 item.Socket.Close();
 
-                //删除字典
-                if (item.Type == SocketType.Accept)
+                if (item.Type == SocketType.Connect)
                 {
-                    foreach (var pair in _tags)
-                    {
-                        if (pair.Value == item)
-                        {
-                            _tags.TryRemove(pair.Key,out SocketItem i1);
-                            break;
-                        }
-                    }
-                }
-                else if (item.Type == SocketType.Connect)
-                {
-                    foreach (var pair in _endPoints)
-                    {
-                        if (pair.Value == item)
-                        {
-                            _endPoints.TryRemove(pair.Key, out SocketItem i2);
-                            break;
-                        }
-                    }
-                    _connection.ReportError(item.RemoteEndPoint);
+                    _connection.ReportError(item);
                 }
             }
+        }
+
+        /// <summary>
+        /// tcp发送
+        /// </summary>
+        /// <param name="item">套接字</param>
+        /// <param name="buffer">字节流</param>
+        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <returns>发送结果</returns>
+        private SocketResult SendTcp(SocketItem item, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        {
+            return item.Handler?.SendTcp(item.Socket, buffer, handler) ?? SocketResult.NotFoundHandler;
         }
 
         /// <summary>
@@ -469,46 +364,15 @@ namespace Kakegurui.Net
         /// <returns>发送结果</returns>
         public SocketResult SendTcp(Socket socket, List<byte> buffer, ReceiveAsyncHandler handler = null)
         {
-            if (_sockets.TryGetValue(socket, out SocketItem item))
+            if (socket == null)
             {
-                return item.Handler?.SendTcp(socket, buffer, handler) ?? SocketResult.NotFoundHandler;
+                return SocketResult.NotFoundSocket;
             }
             else
             {
-                return SocketResult.NotFoundHandler;
-            }
-        }
-
-        /// <summary>
-        /// tcp发送
-        /// </summary>
-        /// <param name="tag">连入套接字标记</param>
-        /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
-        /// <returns>发送结果</returns>
-        public SocketResult SendTcp(ushort tag, List<byte> buffer, ReceiveAsyncHandler handler = null)
-        {
-            return _tags.TryGetValue(tag, out SocketItem item)
-                ? SendTcp(item.Socket, buffer, handler)
-                : SocketResult.NotFoundSocket;
-        }
-
-        /// <summary>
-        /// tcp发送
-        /// </summary>
-        /// <param name="endPoint">发送地址</param>
-        /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
-        /// <returns>发送结果</returns>
-        public SocketResult SendTcp(IPEndPoint endPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
-        {
-            if (_endPoints.TryGetValue(endPoint, out SocketItem item))
-            {
-                return item.Socket == null ? SocketResult.Disconnection : SendTcp(item.Socket, buffer, handler);
-            }
-            else
-            {
-                return SocketResult.NotFoundEndPoint;
+                return _sockets.TryGetValue(socket, out SocketItem item)
+                    ? SendTcp(item, buffer, handler)
+                    : SocketResult.NotFoundSocket;
             }
         }
 
@@ -541,18 +405,31 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// tcp发送，并等待返回结果
+        /// tcp发送
         /// </summary>
-        /// <param name="endPoint">发送地址</param>
+        /// <param name="tag">套接字标记</param>
+        /// <param name="buffer">字节流</param>
+        /// <param name="handler"></param>
+        /// <returns>发送结果</returns>
+        public SocketResult SendTcp(string tag, List<byte> buffer, ReceiveAsyncHandler handler)
+        {
+            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            return socket.Key == null ? SocketResult.NotFoundSocket : SendTcp(socket.Value, buffer, handler);
+        }
+
+        /// <summary>
+        /// tcp发送
+        /// </summary>
+        /// <param name="tag">套接字标记</param>
         /// <param name="buffer">字节流</param>
         /// <param name="protocolId">等待协议编号</param>
         /// <param name="timeStamp">发送时间戳</param>
         /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(IPEndPoint endPoint, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
+        public SocketResult SendTcp(string tag, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
         {
             NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
-            SocketResult result = SendTcp(endPoint, buffer, handler);
+            SocketResult result = SendTcp(tag, buffer, handler);
             if (result == SocketResult.Success)
             {
                 result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
@@ -569,6 +446,33 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
+        /// tcp发送
+        /// </summary>
+        /// <param name="tag">套接字标记</param>
+        /// <param name="buffer">字节流</param>
+        /// <returns>发送结果</returns>
+        public List<SocketResult> SendTcp(string tag, List<byte> buffer)
+        {
+            return _sockets
+                .Where(s => s.Value.Tag == tag)
+                .Select(s => SendTcp(s.Value, buffer))
+                .ToList();
+        }
+
+        /// <summary>
+        /// udp发送
+        /// </summary>
+        /// <param name="item">udp套接字</param>
+        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="buffer">字节流</param>
+        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <returns>发送结果</returns>
+        private SocketResult SendUdp(SocketItem item, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        {
+            return item.Handler?.SendUdp(item.Socket, remoteEndPoint, buffer, handler) ?? SocketResult.NotFoundHandler;
+        }
+
+        /// <summary>
         /// udp发送
         /// </summary>
         /// <param name="udpSocket">udp套接字</param>
@@ -578,35 +482,13 @@ namespace Kakegurui.Net
         /// <returns>发送结果</returns>
         public SocketResult SendUdp(Socket udpSocket, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
         {
-            if (_sockets.TryGetValue(udpSocket, out SocketItem item))
+            if (udpSocket == null)
             {
-                return item.Handler?.SendUdp(udpSocket, remoteEndPoint, buffer, handler) ?? SocketResult.NotFoundHandler;
+                return SocketResult.NotFoundSocket;
             }
             else
             {
-                return SocketResult.NotFoundHandler;
-            }
-        }
-
-        /// <summary>
-        /// udp发送
-        /// </summary>
-        /// <param name="bindEndPoint">本地绑定地址</param>
-        /// <param name="remoteEndPoint">远程地址</param>
-        /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
-        /// <returns>发送结果</returns>
-        public SocketResult SendUdp(IPEndPoint bindEndPoint, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
-        {
-            if (_endPoints.TryGetValue(bindEndPoint, out SocketItem item))
-            {
-                return item.Socket == null
-                    ? SocketResult.Disconnection
-                    : SendUdp(item.Socket, remoteEndPoint, buffer, handler);
-            }
-            else
-            {
-                return SocketResult.NotFoundEndPoint;
+                return _sockets.TryGetValue(udpSocket, out SocketItem item) ? SendUdp(item, remoteEndPoint, buffer, handler) : SocketResult.NotFoundSocket;
             }
         }
 
@@ -640,23 +522,60 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// tcp通知
+        /// udp发送，并等待返回结果
         /// </summary>
+        /// <param name="tag">套接字标记</param>
+        /// <param name="remoteEndPoint">远程地址</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="port">服务监听端口</param>
+        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
         /// <returns>发送结果</returns>
-        public void Notice(List<byte> buffer, int port=0)
+        public SocketResult SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler)
         {
-            foreach (var pair in _sockets)
+            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            return socket.Key == null ? SocketResult.NotFoundSocket : SendUdp(socket.Value, remoteEndPoint, buffer, handler);
+        }
+
+        /// <summary>
+        /// udp发送，并等待返回结果
+        /// </summary>
+        /// <param name="tag">套接字标记</param>
+        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="buffer">字节流</param>
+        /// <param name="protocolId">等待协议编号</param>
+        /// <param name="timeStamp">发送时间戳</param>
+        /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
+        /// <returns>发送结果</returns>
+        public SocketResult SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
+        {
+            NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
+            SocketResult result = SendUdp(tag, remoteEndPoint, buffer, handler);
+            if (result == SocketResult.Success)
             {
-                if (pair.Value.Type == SocketType.Accept)
+                result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
+                if (result == SocketResult.Success)
                 {
-                    if (port == 0 || (pair.Value.LocalEndPoint).Port == port)
-                    {
-                        pair.Value.Handler?.SendTcp(pair.Key, buffer);
-                    }
+                    receiveBuffer?.AddRange(handler.Buffer);
                 }
+                return result;
             }
+            else
+            {
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// tcp发送
+        /// </summary>
+        /// <param name="tag">套接字标记</param>
+        /// <param name="remoteEndPoint">连入套接字标记</param>
+        /// <param name="buffer">字节流</param>
+        /// <returns>发送结果</returns>
+        public IEnumerable<SocketResult> SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer)
+        {
+            return _sockets.AsParallel()
+                .Where(s => s.Value.Tag == tag)
+                .Select(s => SendUdp(s.Value, remoteEndPoint, buffer));
         }
 
         protected override void ActionCore()
@@ -675,13 +594,13 @@ namespace Kakegurui.Net
                     {
                         try
                         {
-                            builder.AppendFormat("{0} local:{1} remote:{2} tag:{3} t:{4} r:{5}\n",
+                            builder.AppendFormat("{0} local:{1} remote:{2} tag:{3} t:{4} r:{5} time:{6:yyyy-MM-dd HH:mm:ss.fff}\n",
                                 socket.Key.Handle,
                                 socket.Value.LocalEndPoint,
                                 socket.Value.RemoteEndPoint,
                                 socket.Value.Tag,
                                 socket.Value.Handler?.TransmitSize,
-                                socket.Value.Handler?.ReceiveSize);
+                                socket.Value.Handler?.ReceiveSize, socket.Value.StartTime);
                         }
                         catch (SocketException)
                         {

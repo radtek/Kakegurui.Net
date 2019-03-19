@@ -15,8 +15,7 @@ namespace Kakegurui.Net
         Disconnection = 3,
         NotFoundSocket = 4,
         InvalidTag = 5,
-        NotFoundHandler = 6,
-        NotFoundEndPoint=7
+        NotFoundHandler = 6
     }
 
     /// <summary>
@@ -65,7 +64,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 套接字标识 accept
         /// </summary>
-        public ushort Tag { get; set; }
+        public string Tag { get; set; }
 
         /// <summary>
         /// 套接字远程地址
@@ -77,4 +76,12 @@ namespace Kakegurui.Net
         /// </summary>
         public IPEndPoint LocalEndPoint { get; set; }
     };
+
+    /// <summary>
+    /// 套接字事件参数
+    /// </summary>
+    public class SocketEventArgs : EventArgs
+    {
+        public SocketItem Item { get; set; }
+    }
 }

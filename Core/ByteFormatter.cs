@@ -43,7 +43,7 @@ namespace Kakegurui.Core
             List<byte> buffer=new List<byte>();
             foreach (var property in obj.GetType().GetProperties().Where(p => p.GetCustomAttributesData().Count != 0).OrderBy(p => p.GetCustomAttributesData()[0].ConstructorArguments[0].Value))
             {
-                ToBytes(property.GetValue(obj), buffer);
+                ToBytes(property.PropertyType,property.GetValue(obj), buffer);
             }
             return buffer;
         }
@@ -51,83 +51,108 @@ namespace Kakegurui.Core
         /// <summary>
         /// 实例转字节流
         /// </summary>
+        /// <param name="type">实例类型</param>
         /// <param name="value">实例</param>
         /// <param name="buffer">字节流，转换后的字节流会添加到改列表中</param>
-        private static void ToBytes(object value, List<byte> buffer)
+        private static void ToBytes(Type type,object value, List<byte> buffer)
         {
-            if (value.GetType().IsArray)
+            if (type.IsArray)
             {
-                Array array = (Array)value;
-                ToBytes(Convert.ToUInt16(array.Length), buffer);
-                foreach (var item in array)
+                if (value == null)
                 {
-                    ToBytes(item, buffer);
+                    ToBytes(typeof(ushort), (ushort)0, buffer);
+                }
+                else
+                {
+                    Array array = (Array)value;
+                    ToBytes(typeof(ushort), Convert.ToUInt16(array.Length), buffer);
+                    foreach (var item in array)
+                    {
+                        ToBytes(item.GetType(), item, buffer);
+                    }
                 }
                 return;
             }
 
-            if (value.GetType().FullName.StartsWith("System.Collections.Generic.List"))
+            if (type.FullName.StartsWith("System.Collections.Generic.List"))
             {
-                System.Collections.IList list = (System.Collections.IList)value;
-                ToBytes(Convert.ToUInt16(list.Count), buffer);
-                foreach (var item in list)
+                if (value == null)
                 {
-                    ToBytes(item, buffer);
+                    ToBytes(typeof(ushort), (ushort)0, buffer);
+                }
+                else
+                {
+                    System.Collections.IList list = (System.Collections.IList)value;
+                    ToBytes(typeof(ushort), Convert.ToUInt16(list.Count), buffer);
+                    foreach (var item in list)
+                    {
+                        ToBytes(item.GetType(),item, buffer);
+                    }
                 }
                 return;
             }
 
-            if (value is string s)
+            if (type==typeof(string))
             {
-                buffer.AddRange(Encoding.UTF8.GetBytes(s));
-                buffer.Add(0);
+                if (value == null)
+                {
+                    buffer.Add(0);
+                }
+                else
+                {
+                    buffer.AddRange(Encoding.UTF8.GetBytes((string)value));
+                    buffer.Add(0);
+                }
                 return;
             }
 
             byte[] temp;
-            if (value is byte b1)
+            if (type==typeof(byte))
             {
-                temp = new[] { b1 };
+                temp = new[] {(byte)value };
             }
-            else if (value is sbyte b2)
+            else if (type == typeof(sbyte))
             {
-                temp = new[] { Convert.ToByte(b2) };
+                temp = new[] { Convert.ToByte((sbyte)value) };
             }
-            else if (value is short s1)
+            else if (type == typeof(short))
             {
-                temp = BitConverter.GetBytes(s1);
+                temp = BitConverter.GetBytes((short)value);
             }
-            else if (value is ushort s2)
+            else if (type == typeof(ushort))
             {
-                temp = BitConverter.GetBytes(s2);
+                temp = BitConverter.GetBytes((ushort)value);
             }
-            else if (value is int i1)
+            else if (type == typeof(int))
             {
-                temp = BitConverter.GetBytes(i1);
+                temp = BitConverter.GetBytes((int)value);
             }
-            else if (value is uint i2)
+            else if (type == typeof(uint))
             {
-                temp = BitConverter.GetBytes(i2);
+                temp = BitConverter.GetBytes((uint)value);
             }
-            else if (value is long l1)
+            else if (type == typeof(long))
             {
-                temp = BitConverter.GetBytes(l1);
+                temp = BitConverter.GetBytes((long)value);
             }
-            else if (value is ulong l2)
+            else if (type == typeof(ulong))
             {
-                temp = BitConverter.GetBytes(l2);
+                temp = BitConverter.GetBytes((ulong)value);
             }
-            else if (value is float f)
+            else if (type == typeof(float))
             {
-                temp = BitConverter.GetBytes(f);
+                temp = BitConverter.GetBytes((float)value);
             }
-            else if (value is double d)
+            else if (type == typeof(double))
             {
-                temp = BitConverter.GetBytes(d);
+                temp = BitConverter.GetBytes((double)value);
             }
             else
             {
-                buffer.AddRange(Serialize(value));
+                if (value!=null)
+                {
+                    buffer.AddRange(Serialize(value));
+                }
                 return;
             }
             if (BitConverter.IsLittleEndian)

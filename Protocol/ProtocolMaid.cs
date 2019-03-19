@@ -79,17 +79,9 @@ namespace Kakegurui.Protocol
             Shoot_Request request = new Shoot_Request();
             ByteFormatter.Deserialize(request, e.Buffer, e.Offset+ProtocolHead.HeadSize);
             AutoHandler handler = new AutoHandler(request.ProtocolId, e.TimeStamp, e.Socket,(SocketHandler)sender);
-            SocketResult result;
-            if (request.BindIp == 0 && request.BindPort == 0)
-            {
-                result = request.RemoteIp == 0 ?
-                    SendTcp(request.RemotePort, request.Buffer, handler) :
-                    SendTcp(new IPEndPoint(request.RemoteIp, request.RemotePort), request.Buffer, handler);
-            }
-            else
-            {
-                result = SendUdp(new IPEndPoint(request.BindIp, request.BindPort), new IPEndPoint(request.RemoteIp, request.RemotePort), request.Buffer, handler);
-            }
+            SocketResult result= request.RemoteIp == 0 && request.RemotePort ==0
+                ? SendTcp(request.Tag, request.Buffer, handler)
+                : SendUdp(request.Tag, new IPEndPoint(request.RemoteIp, request.RemotePort), request.Buffer, handler);
 
             if (result != SocketResult.Success)
             {
@@ -101,6 +93,5 @@ namespace Kakegurui.Protocol
                 e.ResponseBuffer = ProtocolPacker.Response(e.TimeStamp, response);
             }
         }
-
     }
 }

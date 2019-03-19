@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using Kakegurui.Core;
+using Kakegurui.Net;
 
 namespace Kakegurui.Protocol
 {
@@ -19,57 +20,32 @@ namespace Kakegurui.Protocol
         }
 
         /// <summary>
-        /// 构造函数
+        /// 构造函数 tcp
         /// </summary>
         /// <param name="tag">连入套接字标记</param>
         /// <param name="protocol">等待协议编号</param>
         /// <param name="buffer">字节流</param>
-        public Shoot_Request(ushort tag, short protocol, List<byte> buffer)
+        public Shoot_Request(string tag, short protocol, List<byte> buffer)
         {
-            RemotePort = tag;
+            Tag = tag;
+            RemoteIp = 0;
+            RemotePort = 0;
             ProtocolId = protocol;
             Buffer = buffer;
         }
 
         /// <summary>
-        /// 构造函数
+        /// 构造函数 udp
         /// </summary>
-        /// <param name="endPoint">发送地址</param>
+        /// <param name="tag">连入套接字标记</param>
+        /// <param name="remoteEndPoint">udp远程地址</param>
         /// <param name="protocol">等待协议编号</param>
         /// <param name="buffer">字节流</param>
-        public Shoot_Request(IPEndPoint endPoint, short protocol, List<byte> buffer)
+        public Shoot_Request(string tag,IPEndPoint remoteEndPoint, short protocol, List<byte> buffer)
         {
-            if (endPoint?.Address != null)
-            {
-                RemoteIp = BitConverter.ToUInt32(endPoint.Address.GetAddressBytes(),0);
-                RemotePort = Convert.ToUInt16(endPoint.Port);
-            }
-
-            ProtocolId = protocol;
-            Buffer = buffer;
-        }
-
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="bindEndPoint">本地udp绑定地址</param>
-        /// <param name="remoteEndPoint">发送到的远程地址</param>
-        /// <param name="protocol">等待协议编号</param>
-        /// <param name="buffer">字节流</param>
-        public Shoot_Request(IPEndPoint bindEndPoint, IPEndPoint remoteEndPoint, short protocol, List<byte> buffer)
-        {
-            if (bindEndPoint?.Address != null)
-            {
-                BindIp = BitConverter.ToUInt32(bindEndPoint.Address.GetAddressBytes(),0);
-                BindPort = Convert.ToUInt16(bindEndPoint.Port);
-            }
-
-            if (remoteEndPoint?.Address != null)
-            {
-                RemoteIp = BitConverter.ToUInt32(remoteEndPoint.Address.GetAddressBytes(),0);
-                RemotePort = Convert.ToUInt16(remoteEndPoint.Port);
-            }
-
+            Tag = tag;
+            RemoteIp = BitConverter.ToUInt32(remoteEndPoint.Address.GetAddressBytes(),0);
+            RemotePort = Convert.ToUInt16(remoteEndPoint.Port);
             ProtocolId = protocol;
             Buffer = buffer;
         }
@@ -79,32 +55,27 @@ namespace Kakegurui.Protocol
         /// <summary>
         /// 本地地址ip
         /// </summary>
-        [SerializeIndex(1)] public uint BindIp { get; set; }
-
-        /// <summary>
-        /// 本地地址端口
-        /// </summary>
-        [SerializeIndex(2)] public ushort BindPort { get; set; }
+        [SerializeIndex(1)] public string Tag { get; set; }
 
         /// <summary>
         /// 远程地址ip
         /// </summary>
-        [SerializeIndex(3)] public uint RemoteIp { get; set; }
+        [SerializeIndex(2)] public uint RemoteIp { get; set; }
 
         /// <summary>
         /// 远程地址端口
         /// </summary>
-        [SerializeIndex(4)] public ushort RemotePort { get; set; }
+        [SerializeIndex(3)] public ushort RemotePort { get; set; }
 
         /// <summary>
         /// 等待协议编号
         /// </summary>
-        [SerializeIndex(5)] public short ProtocolId { get; set; }
+        [SerializeIndex(4)] public short ProtocolId { get; set; }
 
         /// <summary>
         /// 发送字节流
         /// </summary>
-        [SerializeIndex(6)] public List<byte> Buffer { get; set; }
+        [SerializeIndex(5)] public List<byte> Buffer { get; set; }
     }
 
     /// <summary>

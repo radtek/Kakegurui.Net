@@ -36,7 +36,7 @@ namespace Kakegurui.Protocol
         /// 套接字标记
         /// </summary>
         [SerializeIndex(5)]
-        public ushort Tag { get; set; }
+        public string Tag { get; set; }
 
         /// <summary>
         /// 发送总字节流
