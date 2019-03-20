@@ -53,24 +53,6 @@ namespace Kakegurui.Protocol
     }
 
     /// <summary>
-    /// 线程状态
-    /// </summary>
-    public class ThreadStatus
-    {
-        /// <summary>
-        /// 线程名
-        /// </summary>
-        [SerializeIndex(1)]
-        public string Name { get; set; }
-
-        /// <summary>
-        /// 线程最后轮询时间戳
-        /// </summary>
-        [SerializeIndex(2)]
-        public long TimeStamp { get; set; }
-    }
-
-    /// <summary>
     /// 请求状态协议
     /// </summary>
     public class CollectStatus_Request:Protocol
@@ -90,11 +72,5 @@ namespace Kakegurui.Protocol
         /// </summary>
         [SerializeIndex(1)]
         public List<SocketStatus> SocketInfo { get; set; }
-
-        /// <summary>
-        /// 线程状态集合
-        /// </summary>
-        [SerializeIndex(2)]
-        public List<ThreadStatus> ThreadInfo { get; set; }
     }
 }

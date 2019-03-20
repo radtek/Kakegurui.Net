@@ -37,11 +37,6 @@ namespace Kakegurui.Net
         public event EventHandler<SocketEventArgs> Closed;
 
         /// <summary>
-        /// 线程集合
-        /// </summary>
-        protected readonly ConcurrentDictionary<TaskObject,object> _tasks = new ConcurrentDictionary<TaskObject,object>();
-
-        /// <summary>
         /// 套接字集合
         /// </summary>
         protected readonly ConcurrentDictionary<Socket,SocketItem> _sockets=new ConcurrentDictionary<Socket, SocketItem>();
@@ -187,24 +182,6 @@ namespace Kakegurui.Net
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// 添加监视线程
-        /// </summary>
-        /// <param name="task">线程</param>
-        public void AddTask(TaskObject task)
-        {
-            _tasks[task]=null;
-        }
-
-        /// <summary>
-        /// 移除监视线程
-        /// </summary>
-        /// <param name="task">线程</param>
-        public void RemoveTask(TaskObject task)
-        {
-            _tasks.TryRemove(task, out object obj);
         }
 
         /// <summary>
@@ -580,8 +557,6 @@ namespace Kakegurui.Net
 
         protected override void ActionCore()
         {
-            AddTask(this);
-            AddTask(_connection);
             _connection.Start();
             int monitorPollIndex = 0;
             while (!IsCancelled())
@@ -612,17 +587,11 @@ namespace Kakegurui.Net
                                 socket.Value.Handler?.ReceiveSize);
                         }
                     }
-                    builder.Append("thread:\n");
-
-                    foreach (var task in _tasks)
-                    {
-                        builder.AppendFormat("{0} {1}\n", task.Key.Name, task.Key.HitPoint.ToString("yyyy-MM-dd HH:mm:ss.fff"));
-                    }
                     LogPool.Logger.LogTrace(builder.ToString());
                 }
 
                 ++monitorPollIndex;
-                Thread.Sleep(1000);
+                Thread.Sleep(TimeSpan.FromSeconds(1));
             }
             _connection.Stop();
             foreach (var pair in _sockets)

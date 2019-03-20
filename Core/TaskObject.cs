@@ -11,11 +11,6 @@ namespace Kakegurui.Core
     public abstract class TaskObject
     {
         /// <summary>
-        /// 停止时的轮询等待时间
-        /// </summary>
-        private const int StopSpan = 100;
-
-        /// <summary>
         /// 线程类
         /// </summary>
         private readonly Task _task;
@@ -95,7 +90,7 @@ namespace Kakegurui.Core
             _cancelled = true;
             while (!_task.IsCompleted)
             {
-                Thread.Sleep(StopSpan);
+                Thread.Sleep(TimeSpan.FromMilliseconds(100));
             }
         }
     }

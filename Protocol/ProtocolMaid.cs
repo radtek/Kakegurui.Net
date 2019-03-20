@@ -38,8 +38,7 @@ namespace Kakegurui.Protocol
         {
             CollectStatus_Response cs = new CollectStatus_Response
             {
-                SocketInfo = new List<SocketStatus>(),
-                ThreadInfo = new List<ThreadStatus>()
+                SocketInfo = new List<SocketStatus>()
             };
             foreach (var socket in _sockets)
             {
@@ -55,16 +54,6 @@ namespace Kakegurui.Protocol
                 };
 
                 cs.SocketInfo.Add(status);
-            }
-
-            foreach (var task in _tasks)
-            {
-                ThreadStatus status = new ThreadStatus
-                {
-                    Name = task.Key.Name,
-                    TimeStamp = TimeStampConvert.ToTimeStamp(task.Key.HitPoint)
-                };
-                cs.ThreadInfo.Add(status);
             }
             e.ResponseBuffer = ProtocolPacker.Response(e.TimeStamp, cs);
         }

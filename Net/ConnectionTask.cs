@@ -14,10 +14,6 @@ namespace Kakegurui.Net
     public class ConnectionTask:TaskObject
     {
         /// <summary>
-        /// 连接间隔时间
-        /// </summary>
-        private const int ConnectionSpan = 5000;
-        /// <summary>
         /// 连接地址集合
         /// </summary>
         private readonly ConcurrentDictionary<SocketItem,object> _endPoints = new ConcurrentDictionary<SocketItem, object>();
@@ -100,7 +96,7 @@ namespace Kakegurui.Net
                 }
                 else
                 {
-                    Thread.Sleep(ConnectionSpan);
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
                 }
             }
         }
