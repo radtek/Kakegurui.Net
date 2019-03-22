@@ -12,10 +12,8 @@ namespace Kakegurui.Net
         Success = 0,
         SendFailed = 1,
         Timeout = 2,
-        Disconnection = 3,
-        NotFoundSocket = 4,
-        InvalidTag = 5,
-        NotFoundHandler = 6
+        NotFoundSocket = 3,
+        NotFoundHandler = 4
     }
 
     /// <summary>

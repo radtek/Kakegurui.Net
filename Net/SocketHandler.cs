@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Linq;
+using System.Threading;
 using Kakegurui.Core;
 using Microsoft.Extensions.Logging;
 
@@ -22,24 +25,30 @@ namespace Kakegurui.Net
         /// </summary>
         Half,
         /// <summary>
-        /// 请求协议
+        /// 全包
         /// </summary>
-        Request,
-        /// <summary>
-        /// 响应协议
-        /// </summary>
-        Response
+        Full
     };
 
     /// <summary>
     /// 接收到协议事件参数
     /// </summary>
-    public class GotProtocolEventArgs : EventArgs
+    public class SocketPack
     {
         /// <summary>
         /// 套接字
         /// </summary>
         public Socket Socket { get; set; }
+
+        /// <summary>
+        /// udp远程地址
+        /// </summary>
+        public IPEndPoint RemoteEndPoint { get; set; }
+
+        /// <summary>
+        /// 套接字操作实例
+        /// </summary>
+        public SocketHandler Handler { get; set; }
 
         /// <summary>
         /// 发送字节流
@@ -70,17 +79,12 @@ namespace Kakegurui.Net
         /// 发送时间戳
         /// </summary>
         public long TimeStamp { get; set; }
-
-        /// <summary>
-        /// 响应字节流
-        /// </summary>
-        public List<byte> ResponseBuffer { get; set; }
     }
 
     /// <summary>
     /// 套接字处理类
     /// </summary>
-    public abstract class SocketHandler
+    public abstract class SocketHandler:IObservable<SocketPack>
     {
         /// <summary>
         /// 日志接口
@@ -88,19 +92,14 @@ namespace Kakegurui.Net
         protected ILogger _logger;
 
         /// <summary>
-        /// 异步处理列表
-        /// </summary>
-        private readonly LinkedList<ReceiveAsyncHandler> _handlers=new LinkedList<ReceiveAsyncHandler>();
-
-        /// <summary>
         /// 残包
         /// </summary>
         private readonly List<byte> _residueBuffer=new List<byte>();
 
         /// <summary>
-        /// 收到协议事件
+        /// 订阅接收字节流
         /// </summary>
-        public event EventHandler<GotProtocolEventArgs> GotProtocol;
+        private ConcurrentDictionary<IObserver<SocketPack>, object> _observers= new ConcurrentDictionary<IObserver<SocketPack>, object>();
 
         /// <summary>
         /// 构造函数
@@ -110,6 +109,31 @@ namespace Kakegurui.Net
             TransmitSize = 0;
             ReceiveSize = 0;
         }
+        #region 实现IObservable
+        public IDisposable Subscribe(IObserver<SocketPack> observer)
+        {
+            _observers[observer]=null;
+            return new Unsubscriber(_observers, observer);
+        }
+
+        private class Unsubscriber : IDisposable
+        {
+            private readonly ConcurrentDictionary<IObserver<SocketPack>, object> _observers;
+            private readonly IObserver<SocketPack> _observer;
+
+            public Unsubscriber(ConcurrentDictionary<IObserver<SocketPack>, object> observers, IObserver<SocketPack> observer)
+            {
+                _observers = observers;
+                _observer = observer;
+            }
+
+            public void Dispose()
+            {
+                if (_observer != null)
+                    _observers.TryRemove(_observer,out object obj);
+            }
+        }
+        #endregion
 
         /// <summary>
         /// 发送总字节数
@@ -133,93 +157,105 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// tcp发送
+        /// 发送字节流
         /// </summary>
         /// <param name="socket">套接字</param>
+        /// <param name="remoteEndPoint">udp远程地址，如果为null表示tcp发送</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例</param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="action">成功响应后的异步回调，默认为null，表示同步等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(Socket socket, List<byte> buffer, ReceiveAsyncHandler handler=null)
+        public SocketResult Send(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match = null, Action<SocketPack> action = null, List<byte> receiveBuffer = null, int timeout = 3000)
         {
-            byte[] temp = buffer.ToArray();
-            TransmitSize += Convert.ToUInt32(temp.Length);
-            if (handler != null)
+            if (match == null)
             {
-                AutoLock.Lock(this, () =>
-                {
-                    _handlers.AddLast(handler);
-                });
+                return SendCore(socket, remoteEndPoint, buffer);
             }
-
-            Log("{0} {1} {2} {3}", socket.Handle, "-", temp.Length, ByteConvert.ToHex(temp));
-     
-            if (temp.Length == 0)
+            else
             {
-                return SocketResult.SendFailed;
-            }
-
-            try
-            {
-                int written = 0;
-                while (written != temp.Length)
+                if (action == null)
                 {
-                    int n;
-                    if ((n = socket.Send(temp, written, temp.Length - written, SocketFlags.None)) <= 0)
+                    AutoResetEvent _event = new AutoResetEvent(false);
+                    IDisposable disposable = this.Where(match)
+                        .Subscribe(pack =>
+                        {
+                            _event.Set();
+                            receiveBuffer?.AddRange(pack.Buffer.GetRange(pack.Offset, pack.Size));
+                        });
+                    SocketResult result = SendCore(socket, remoteEndPoint, buffer);
+                    if (result == SocketResult.Success)
                     {
-                        return SocketResult.SendFailed;
+                        result = _event.WaitOne(timeout) ? SocketResult.Success : SocketResult.Timeout;
                     }
-                    written += n;
+                    disposable.Dispose();
+                    return result;
                 }
-                return SocketResult.Success;
-            }
-            catch (SocketException)
-            {
-                return SocketResult.SendFailed;
-            }
-            catch (ObjectDisposedException)
-            {
-                return SocketResult.SendFailed;
+                else
+                {
+                    IDisposable disposable = null;
+                    disposable = this.Where(match)
+                        .Timeout(TimeSpan.FromMilliseconds(timeout))
+                        .Subscribe(
+                            pack =>
+                            {
+                                action.Invoke(pack);
+                                disposable.Dispose();
+                            },
+                            ex =>
+                            {
+                                disposable.Dispose();
+                            });
+                    return SendCore(socket, remoteEndPoint, buffer);
+                }
             }
         }
 
         /// <summary>
-        /// udp发送
+        /// 发送字节流
         /// </summary>
         /// <param name="socket">套接字</param>
-        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="remoteEndPoint">udp远程地址，如果为null表示tcp发送</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例</param>
-        /// <returns></returns>
-        public SocketResult SendUdp(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        /// <returns>发送结果</returns>
+        private SocketResult SendCore(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer)
         {
             byte[] temp = buffer.ToArray();
-            TransmitSize += Convert.ToUInt32(temp.Length);
-            if (handler != null)
-            {
-                AutoLock.Lock(this, ()=>
-                {
-                    _handlers.AddLast(handler);
-                });
-            }
-
-            Log("{0} {1} {2} {3} {4}", socket.Handle,remoteEndPoint.ToString(), "-", temp.Length, ByteConvert.ToHex(temp));
-
             if (temp.Length == 0)
             {
                 return SocketResult.SendFailed;
             }
-
+            TransmitSize += Convert.ToUInt32(temp.Length);
             try
             {
-                int written = 0;
-                while (written != temp.Length)
+                if (remoteEndPoint == null)
                 {
-                    int n;
-                    if ((n = socket.SendTo(temp, written, temp.Length - written, SocketFlags.None, remoteEndPoint)) <= 0)
+                    Log("{0} {1} {2} {3}", socket.Handle, "-", temp.Length, ByteConvert.ToHex(temp));
+                    int written = 0;
+                    while (written != temp.Length)
                     {
-                        return SocketResult.SendFailed;
+                        int n;
+                        if ((n = socket.Send(temp, written, temp.Length - written, SocketFlags.None)) <= 0)
+                        {
+                            return SocketResult.SendFailed;
+                        }
+                        written += n;
                     }
-                    written += n;
+                }
+                else
+                {
+                    Log("{0} {1} {2} {3} {4}", socket.Handle, remoteEndPoint.ToString(), "-", temp.Length, ByteConvert.ToHex(temp));
+                    int written = 0;
+                    while (written != temp.Length)
+                    {
+                        int n;
+                        if ((n = socket.SendTo(temp, written, temp.Length - written, SocketFlags.None, remoteEndPoint)) <= 0)
+                        {
+                            return SocketResult.SendFailed;
+                        }
+                        written += n;
+                    }
                 }
                 return SocketResult.Success;
             }
@@ -249,7 +285,7 @@ namespace Kakegurui.Net
         public virtual SocketHandler Clone()
         {
             SocketHandler handler = (SocketHandler)(GetType().GetConstructors()[0].Invoke(new object[] { }));
-            handler.GotProtocol = GotProtocol;
+            handler._observers = _observers;
             return handler;
         }
 
@@ -279,64 +315,24 @@ namespace Kakegurui.Net
             int offset = 0;
             do
             {
-                GotProtocolEventArgs packet = Unpack(socket,remoteEndPoint, _residueBuffer,offset);
-                if (packet.Result == AnalysisResult.Request)
+                SocketPack packet = Unpack(socket,remoteEndPoint, _residueBuffer,offset);
+                if (packet.Result == AnalysisResult.Full)
                 {
                     packet.Socket = socket;
+                    packet.RemoteEndPoint = remoteEndPoint;
+                    packet.Handler = this;
                     packet.Buffer = _residueBuffer;
-                    GotProtocol?.Invoke(this, packet);
-                    if (packet.ResponseBuffer != null)
+                    foreach (var pair in _observers)
                     {
-                        if (socket.ProtocolType == ProtocolType.Tcp)
-                        {
-                            SendTcp(socket, packet.ResponseBuffer);
-                        }
-                        else
-                        {
-                            SendUdp(socket, remoteEndPoint, packet.ResponseBuffer);
-                        }
-                    }
-                }
-                else if (packet.Result == AnalysisResult.Response)
-                {
-                    if (_handlers.Count != 0)
-                    {
-                        AutoLock.Lock(this, () =>
-                        {
-                            LinkedListNode<ReceiveAsyncHandler> node = _handlers.First;
-                            while (node != null)
-                            {
-                                if (node.Value.IsCompleted())
-                                {
-                                    LinkedListNode<ReceiveAsyncHandler> temp = node;
-                                    node = node.Next;
-                                    _handlers.Remove(temp);
-                                }
-                                else
-                                {
-                                    if (node.Value.ProtocolId == packet.ProtocolId && node.Value.TimeStamp == packet.TimeStamp)
-                                    {
-                                        node.Value.Handle(_residueBuffer, packet.Offset, packet.Size);
-                                        LinkedListNode<ReceiveAsyncHandler> temp = node;
-                                        node = node.Next;
-                                        _handlers.Remove(temp);
-                                    }
-                                    else
-                                    {
-                                        node = node.Next;
-                                    }
-                                }
-                            }
-                        });
+                        pair.Key.OnNext(packet);
                     }
                 }
                 else if (packet.Result == AnalysisResult.Half)
                 {
-                    _residueBuffer.RemoveRange(0,offset);
+                    _residueBuffer.RemoveRange(0, offset);
                     return;
                 }
                 offset += packet.Offset + packet.Size;
-
             } while (offset < _residueBuffer.Count);
             _residueBuffer.Clear();
         }
@@ -349,7 +345,7 @@ namespace Kakegurui.Net
         /// <param name="buffer">字节流</param>
         /// <param name="offset">偏移量</param>
         /// <returns>处理结果</returns>
-        protected abstract GotProtocolEventArgs Unpack(Socket socket,IPEndPoint remoteEndPoint,List<byte> buffer,int offset);
+        protected abstract SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint,List<byte> buffer,int offset);
 
     };
 }

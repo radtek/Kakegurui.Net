@@ -185,7 +185,7 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// 添加监听地址
+        /// 添加tcp监听端口
         /// </summary>
         /// <param name="port">监听端口</param>
         /// <param name="handler">处理实例</param>
@@ -242,7 +242,7 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// 添加udp绑定地址
+        /// 添加udp绑定端口
         /// </summary>
         /// <param name="handler">处理实例</param>
         /// <param name="port">绑定端口，默认为0，表示绑定任意端口，此时表示udp客户端</param>
@@ -321,247 +321,178 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// tcp发送
+        /// 套接字
         /// </summary>
-        /// <param name="item">套接字</param>
+        /// <param name="item">套接字详情</param>
+        /// <param name="remoteEndPoint">udp远程地址，如果为null表示tcp发送</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="action">成功响应后的异步回调，默认为null，表示同步等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        private SocketResult SendTcp(SocketItem item, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        private SocketResult Send(SocketItem item, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match = null, Action<SocketPack> action=null,List<byte> receiveBuffer = null,int timeout = 3000)
         {
-            return item.Handler?.SendTcp(item.Socket, buffer, handler) ?? SocketResult.NotFoundHandler;
+            return item.Handler?.Send(item.Socket, remoteEndPoint, buffer,match, action, receiveBuffer, timeout) ?? SocketResult.NotFoundHandler;
         }
 
         /// <summary>
-        /// tcp发送
-        /// </summary>
-        /// <param name="socket">套接字</param>
-        /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
-        /// <returns>发送结果</returns>
-        public SocketResult SendTcp(Socket socket, List<byte> buffer, ReceiveAsyncHandler handler = null)
-        {
-            if (socket == null)
-            {
-                return SocketResult.NotFoundSocket;
-            }
-            else
-            {
-                return _sockets.TryGetValue(socket, out SocketItem item)
-                    ? SendTcp(item, buffer, handler)
-                    : SocketResult.NotFoundSocket;
-            }
-        }
-
-        /// <summary>
-        /// tcp发送，并等待返回结果
+        /// tcp发送，同步响应
         /// </summary>
         /// <param name="socket">套接字</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="protocolId">等待协议编号</param>
-        /// <param name="timeStamp">发送时间戳</param>
-        /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(Socket socket, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
+        public SocketResult SendTcp(Socket socket, List<byte> buffer, Func<SocketPack, bool> match = null, List<byte> receiveBuffer = null, int timeout = 3000)
         {
-            NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
-            SocketResult result = SendTcp(socket, buffer, handler);
-            if (result == SocketResult.Success)
-            {
-                result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
-                if (result == SocketResult.Success)
-                {
-                    receiveBuffer?.AddRange(handler.Buffer);
-                }
-                return result;
-            }
-            else
-            {
-                return result;
-            }
+            return _sockets.TryGetValue(socket, out SocketItem item) ? Send(item,null, buffer, match, null,receiveBuffer, timeout) : SocketResult.NotFoundSocket;
         }
 
         /// <summary>
-        /// tcp发送
+        /// tcp发送，异步响应
+        /// </summary>
+        /// <param name="socket">套接字</param>
+        /// <param name="buffer">字节流</param>
+        /// <param name="match">响应匹配函数</param>
+        /// <param name="action">成功响应后的异步回调，表示同步等待响应</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
+        /// <returns>发送结果</returns>
+        public SocketResult SendTcpAsync(Socket socket, List<byte> buffer, Func<SocketPack, bool> match, Action<SocketPack> action, int timeout = 3000)
+        {
+            return _sockets.TryGetValue(socket, out SocketItem item) ? Send(item,null, buffer, match, action,null, timeout) : SocketResult.NotFoundSocket;
+        }
+
+        /// <summary>
+        /// tcp发送，同步响应
         /// </summary>
         /// <param name="tag">套接字标记</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler"></param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(string tag, List<byte> buffer, ReceiveAsyncHandler handler)
+        public SocketResult SendTcp(string tag, List<byte> buffer,Func<SocketPack,bool> match=null, List<byte> receiveBuffer = null, int timeout = 3000)
         {
             var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
-            return socket.Key == null ? SocketResult.NotFoundSocket : SendTcp(socket.Value, buffer, handler);
+            return socket.Key==null? SocketResult.NotFoundSocket: Send(socket.Value,null, buffer, match, null,receiveBuffer, timeout);
         }
 
         /// <summary>
-        /// tcp发送
+        /// tcp发送，异步响应
         /// </summary>
         /// <param name="tag">套接字标记</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="protocolId">等待协议编号</param>
-        /// <param name="timeStamp">发送时间戳</param>
-        /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
+        /// <param name="match">响应匹配函数</param>
+        /// <param name="action">成功响应后的异步回调，表示同步等待响应</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendTcp(string tag, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
+        public SocketResult SendTcpAsync(string tag, List<byte> buffer, Func<SocketPack, bool> match , Action<SocketPack> action, int timeout = 3000)
         {
-            NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
-            SocketResult result = SendTcp(tag, buffer, handler);
-            if (result == SocketResult.Success)
-            {
-                result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
-                if (result == SocketResult.Success)
-                {
-                    receiveBuffer?.AddRange(handler.Buffer);
-                }
-                return result;
-            }
-            else
-            {
-                return result;
-            }
+            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            return socket.Key == null ? SocketResult.NotFoundSocket : Send(socket.Value,null, buffer, match, action, null, timeout);
         }
 
         /// <summary>
-        /// tcp发送
+        /// tcp广播
         /// </summary>
         /// <param name="tag">套接字标记</param>
         /// <param name="buffer">字节流</param>
         /// <returns>发送结果</returns>
-        public List<SocketResult> SendTcp(string tag, List<byte> buffer)
+        public List<SocketResult> Broadcast(string tag, List<byte> buffer)
         {
             return _sockets
                 .Where(s => s.Value.Tag == tag)
-                .Select(s => SendTcp(s.Value, buffer))
+                .Select(s => Send(s.Value,null, buffer))
                 .ToList();
         }
 
         /// <summary>
-        /// udp发送
+        /// tcp发送，同步响应
         /// </summary>
-        /// <param name="item">udp套接字</param>
-        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="socket">套接字</param>
+        /// <param name="remoteEndPoint">udp远程地址</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        private SocketResult SendUdp(SocketItem item, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        public SocketResult SendUdp(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match = null, List<byte> receiveBuffer = null, int timeout = 3000)
         {
-            return item.Handler?.SendUdp(item.Socket, remoteEndPoint, buffer, handler) ?? SocketResult.NotFoundHandler;
+            return _sockets.TryGetValue(socket, out SocketItem item) ? Send(item, remoteEndPoint, buffer, match, null, receiveBuffer, timeout) : SocketResult.NotFoundSocket;
         }
 
         /// <summary>
-        /// udp发送
+        /// tcp发送，异步响应
         /// </summary>
-        /// <param name="udpSocket">udp套接字</param>
-        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="socket">套接字</param>
+        /// <param name="remoteEndPoint">udp远程地址</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <param name="match">响应匹配函数</param>
+        /// <param name="action">成功响应后的异步回调，表示同步等待响应</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendUdp(Socket udpSocket, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler = null)
+        public SocketResult SendUdpAsync(Socket socket, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match, Action<SocketPack> action, int timeout = 3000)
         {
-            if (udpSocket == null)
-            {
-                return SocketResult.NotFoundSocket;
-            }
-            else
-            {
-                return _sockets.TryGetValue(udpSocket, out SocketItem item) ? SendUdp(item, remoteEndPoint, buffer, handler) : SocketResult.NotFoundSocket;
-            }
+            return _sockets.TryGetValue(socket, out SocketItem item) ? Send(item, remoteEndPoint, buffer, match, action, null, timeout) : SocketResult.NotFoundSocket;
         }
 
-        /// <summary>
-        /// udp发送，并等待返回结果
-        /// </summary>
-        /// <param name="udpSocket">udp套接字</param>
-        /// <param name="remoteEndPoint">远程地址</param>
-        /// <param name="buffer">字节流</param>
-        /// <param name="protocolId">等待协议编号</param>
-        /// <param name="timeStamp">发送时间戳</param>
-        /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
-        /// <returns>发送结果</returns>
-        public SocketResult SendUdp(Socket udpSocket, IPEndPoint remoteEndPoint, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
-        {
-            NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
-            SocketResult result = SendUdp(udpSocket, remoteEndPoint, buffer, handler);
-            if (result == SocketResult.Success)
-            {
-                result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
-                if (result == SocketResult.Success)
-                {
-                    receiveBuffer?.AddRange(handler.Buffer);
-                }
-                return result;
-            }
-            else
-            {
-                return result;
-            }
-        }
 
         /// <summary>
-        /// udp发送，并等待返回结果
+        /// tcp发送，同步响应
         /// </summary>
         /// <param name="tag">套接字标记</param>
-        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="remoteEndPoint">udp远程地址</param>
         /// <param name="buffer">字节流</param>
-        /// <param name="handler">异步接收处理实例，默认为null即不等待响应</param>
+        /// <param name="match">响应匹配函数，不使用匹配标识不等待响应</param>
+        /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, ReceiveAsyncHandler handler)
+        public SocketResult SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match = null, List<byte> receiveBuffer = null, int timeout = 3000)
         {
             var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
-            return socket.Key == null ? SocketResult.NotFoundSocket : SendUdp(socket.Value, remoteEndPoint, buffer, handler);
+            return socket.Key == null ? SocketResult.NotFoundSocket : Send(socket.Value, remoteEndPoint, buffer, match, null, receiveBuffer, timeout);
         }
 
         /// <summary>
-        /// udp发送，并等待返回结果
+        /// tcp发送，异步响应
         /// </summary>
         /// <param name="tag">套接字标记</param>
-        /// <param name="remoteEndPoint">远程地址</param>
+        /// <param name="remoteEndPoint">udp远程地址</param> 
         /// <param name="buffer">字节流</param>
-        /// <param name="protocolId">等待协议编号</param>
-        /// <param name="timeStamp">发送时间戳</param>
-        /// <param name="receiveBuffer">用于放置接收到的字节流的缓冲，默认为null即不需要记录接收字节流</param>
+        /// <param name="match">响应匹配函数</param>
+        /// <param name="action">成功响应后的异步回调，表示同步等待响应</param>
+        /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, int protocolId, long timeStamp = 0, List<byte> receiveBuffer = null)
+        public SocketResult SendUdpAsync(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<SocketPack, bool> match, Action<SocketPack> action, int timeout = 3000)
         {
-            NoticeHandler handler = new NoticeHandler(protocolId, timeStamp);
-            SocketResult result = SendUdp(tag, remoteEndPoint, buffer, handler);
-            if (result == SocketResult.Success)
-            {
-                result = handler.Wait() ? SocketResult.Success : SocketResult.Timeout;
-                if (result == SocketResult.Success)
-                {
-                    receiveBuffer?.AddRange(handler.Buffer);
-                }
-                return result;
-            }
-            else
-            {
-                return result;
-            }
+            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            return socket.Key == null ? SocketResult.NotFoundSocket : Send(socket.Value, remoteEndPoint, buffer, match, action, null, timeout);
         }
 
         /// <summary>
-        /// tcp发送
+        /// udp广播
         /// </summary>
         /// <param name="tag">套接字标记</param>
-        /// <param name="remoteEndPoint">连入套接字标记</param>
+        /// <param name="remoteEndPoint">udp远程地址</param> 
         /// <param name="buffer">字节流</param>
         /// <returns>发送结果</returns>
-        public IEnumerable<SocketResult> SendUdp(string tag, IPEndPoint remoteEndPoint, List<byte> buffer)
+        public IEnumerable<SocketResult> Broadcast(string tag, IPEndPoint remoteEndPoint, List<byte> buffer)
         {
             return _sockets.AsParallel()
                 .Where(s => s.Value.Tag == tag)
-                .Select(s => SendUdp(s.Value, remoteEndPoint, buffer));
+                .Select(s => Send(s.Value, remoteEndPoint, buffer));
         }
 
         protected override void ActionCore()
         {
             _connection.Start();
-            int monitorPollIndex = 0;
+            int monitorPoll = 0;
+            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 60;
             while (!IsCancelled())
             {
-                if (monitorPollIndex % 60 == 0)
+                if (monitorPoll % monitorSpan == 0)
                 {
                     StringBuilder builder = new StringBuilder();
                     builder.Append("socket:\n");
@@ -590,7 +521,7 @@ namespace Kakegurui.Net
                     LogPool.Logger.LogTrace(builder.ToString());
                 }
 
-                ++monitorPollIndex;
+                ++monitorPoll;
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
             _connection.Stop();

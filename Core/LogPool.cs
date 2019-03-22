@@ -17,8 +17,8 @@ namespace Kakegurui.Core
         static LogPool()
         {
             //创建文件目录和删除超时文件
-            string directory = AppConfig.ReadString("log:file:directory") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../log/");
-            int holdDays = AppConfig.ReadInt32("log:file:holddays") ?? 0;
+            string directory = AppConfig.ReadString("Log:File:Directory") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../log/");
+            int holdDays = AppConfig.ReadInt32("Log:File:HoldDays") ?? 0;
             if (Directory.Exists(directory))
             {
                 DeleteFiles(directory, holdDays);
@@ -27,20 +27,38 @@ namespace Kakegurui.Core
             {
                 Directory.CreateDirectory(directory);
             }
+        }
 
-            //创建日志
-            LoggerFactory factory = new LoggerFactory();
-            foreach (ILoggerProvider loggerProvider in GetProviders())
+        /// <summary>
+        /// 日志接口
+        /// </summary>
+        private static ILogger _logger;
+
+        /// <summary>
+        /// 日志接口
+        /// </summary>
+        public static ILogger Logger
+        {
+            get
             {
-                factory.AddProvider(loggerProvider);
+                if (_logger == null)
+                {
+                    //创建日志
+                    LoggerFactory factory = new LoggerFactory();
+                    foreach (ILoggerProvider loggerProvider in GetProviders())
+                    {
+                        factory.AddProvider(loggerProvider);
+                    }
+                    _logger = factory.CreateLogger("log");
+                }
+                return _logger;
             }
-            Logger = factory.CreateLogger("log");
         }
 
         /// <summary>
         /// 从配置文件读取日志提供
         /// </summary>
-        /// <returns></returns>
+        /// <returns>日志提供列表</returns>
         public static List<ILoggerProvider> GetProviders()
         {
             List<ILoggerProvider> providers = new List<ILoggerProvider>();
@@ -59,11 +77,6 @@ namespace Kakegurui.Core
 
             return providers;
         }
-
-        /// <summary>
-        /// 日志接口
-        /// </summary>
-        public static ILogger Logger { get; }
 
         /// <summary>
         /// 删除文件
@@ -102,7 +115,7 @@ namespace Kakegurui.Core
         /// <returns>如果存在该配置返回实例，否则返回null</returns>
         private static ILoggerProvider ReadProvider(int index)
         {
-            string value = AppConfig.ReadString(string.Format("log:logger:{0}:type", index));
+            string value = AppConfig.ReadString(string.Format("Log:Logger:{0}:Type", index));
             if (value != null)
             {
                 ILogFilter filter = ReadFilter(index);
@@ -116,7 +129,7 @@ namespace Kakegurui.Core
                         }
                         case "File":
                         {
-                            string name = AppConfig.ReadString(string.Format("log:logger:{0}:name", index));
+                            string name = AppConfig.ReadString(string.Format("Log:Logger:{0}:Name", index));
                             return new FileLogger(filter,name);
                         }
                         default:
@@ -134,35 +147,35 @@ namespace Kakegurui.Core
         /// <returns>读取成功返回筛选接口，否则返回null</returns>
         private static ILogFilter ReadFilter(int index)
         {
-            string filter = AppConfig.ReadString(string.Format("log:logger:{0}:filter", index));
+            string filter = AppConfig.ReadString(string.Format("Log:Logger:{0}:Filter", index));
             switch (filter)
             {
                 case null:
                     return null;
                 case "Equal":
                 {
-                    LogLevel level = ReadLevel(string.Format("log:logger:{0}:level", index));
+                    LogLevel level = ReadLevel(string.Format("Log:Logger:{0}:Level", index));
                     return new EqualFilter(level);
                 }
                 case "NotEqueal":
                 {
-                    LogLevel level = ReadLevel(string.Format("log:logger:{0}:level", index));
+                    LogLevel level = ReadLevel(string.Format("Log:Logger:{0}:Level", index));
                     return new EqualFilter(level);
                 }
                 case "Higher":
                 {
-                    LogLevel level = ReadLevel(string.Format("log:logger:{0}:level", index));
+                    LogLevel level = ReadLevel(string.Format("Log:Logger:{0}:Level", index));
                     return new HigherFilter(level);
                 }
                 case "HigherEqual":
                 {
-                    LogLevel level = ReadLevel(string.Format("log:logger:{0}:level", index));
+                    LogLevel level = ReadLevel(string.Format("Log:Logger:{0}:Level", index));
                     return new HigherEqualFilter(level);
                 }
                 case "Range":
                 {
-                    LogLevel minLevel = ReadLevel(string.Format("log:logger:{0}:minlevel", index));
-                    LogLevel maxLevel = ReadLevel(string.Format("log:logger:{0}:maxlevel", index));
+                    LogLevel minLevel = ReadLevel(string.Format("Log:Logger:{0}:MinLevel", index));
+                    LogLevel maxLevel = ReadLevel(string.Format("Log:Logger:{0}:MaxLevel", index));
                     return new RangeFilter(minLevel,maxLevel);
                 }
                 default:

@@ -63,10 +63,11 @@ namespace Kakegurui.Net
 
         protected override void ActionCore()
         {
-            int pollIndex = 0;
+            int connectionPoll = 0;
+            int connectionSpan = AppConfig.ReadInt32("ConnectionSpan") ?? 5;
             while (!IsCancelled())
             {
-                if (pollIndex % 5 == 0)
+                if (connectionPoll % connectionSpan == 0)
                 {
                     _endPoints.AsParallel().ForAll(pair =>
                     {
@@ -94,7 +95,7 @@ namespace Kakegurui.Net
                     });
                 }
 
-                ++pollIndex;
+                ++connectionPoll;
                 if (_endPoints.Count == 0 || _endPoints.All(e => e.Key.Socket?.Connected == true))
                 {
                     _eventWait.WaitOne();

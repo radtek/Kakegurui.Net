@@ -11,14 +11,14 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class ProtocolHandler:SocketHandler
     {
-        protected override GotProtocolEventArgs Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
+        protected override SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
         {
             int head=buffer.FindIndex(b => b == ProtocolHead.Tag);
      
             //未找到协议
             if (head == -1)
             {
-                return new GotProtocolEventArgs
+                return new SocketPack
                 {
                     Result = AnalysisResult.Empty,
                     Offset = 0,
@@ -32,7 +32,7 @@ namespace Kakegurui.Protocol
                 //长度小于协议头
                 if (lessSize < ProtocolHead.HeadSize)
                 {
-                    return new GotProtocolEventArgs
+                    return new SocketPack
                     {
                         Result = AnalysisResult.Half,
                         Offset = offset,
@@ -47,7 +47,7 @@ namespace Kakegurui.Protocol
 
                     if (lessSize < protocolHead.ContentSize + ProtocolHead.HeadSize)
                     {
-                        return new GotProtocolEventArgs
+                        return new SocketPack
                         {
                             Result = AnalysisResult.Half,
                             Offset = offset,
@@ -56,9 +56,9 @@ namespace Kakegurui.Protocol
                     }
                     else
                     {
-                        return new GotProtocolEventArgs
+                        return new SocketPack
                         {
-                            Result = protocolHead.Id % 2 != 0 ? AnalysisResult.Request : AnalysisResult.Response,
+                            Result = AnalysisResult.Full,
                             Offset = offset,
                             Size = protocolHead.ContentSize + ProtocolHead.HeadSize,
                             ProtocolId = protocolHead.Id,

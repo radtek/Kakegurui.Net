@@ -8,19 +8,12 @@ namespace Kakegurui.Core
     /// </summary>
     public static class AppConfig
     {
-        /// <summary>
-        /// 锁超时时间
-        /// </summary>
-        public static int LockTimeout { get; }
-
         static AppConfig()
         {
             Config = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("appsettings.json", true, true)
                 .Build();
-
-            LockTimeout = ReadInt32("LockTimeout") ?? 3000;
         }
 
         /// <summary>

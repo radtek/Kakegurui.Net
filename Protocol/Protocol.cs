@@ -12,18 +12,6 @@ namespace Kakegurui.Protocol
     }
 
     /// <summary>
-    /// 协议基类
-    /// </summary>
-    public abstract class Protocol
-    {
-        /// <summary>
-        /// 协议编号
-        /// </summary>
-        public abstract byte Id { get; }
-    }
-
-
-    /// <summary>
     /// 协议头
     /// </summary>
     public class ProtocolHead
@@ -59,10 +47,14 @@ namespace Kakegurui.Protocol
     }
 
     /// <summary>
-    /// 协议包装
+    /// 协议基类
     /// </summary>
-    public class ProtocolPacker
+    public abstract class Protocol
     {
+        /// <summary>
+        /// 协议编号
+        /// </summary>
+        public abstract byte Id { get; }
 
         /// <summary>
         /// 封包请求协议
@@ -104,7 +96,5 @@ namespace Kakegurui.Protocol
             buffer.AddRange(content);
             return buffer;
         }
-
     }
-
 }
