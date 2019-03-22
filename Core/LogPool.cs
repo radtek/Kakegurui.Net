@@ -32,28 +32,21 @@ namespace Kakegurui.Core
         /// <summary>
         /// 日志接口
         /// </summary>
-        private static ILogger _logger;
+        private static readonly Lazy<ILogger> _logger= new Lazy<ILogger>(() =>
+        {
+            //创建日志
+            LoggerFactory factory = new LoggerFactory();
+            foreach (ILoggerProvider loggerProvider in GetProviders())
+            {
+                factory.AddProvider(loggerProvider);
+            }
+            return factory.CreateLogger("log");
+        });
 
         /// <summary>
         /// 日志接口
         /// </summary>
-        public static ILogger Logger
-        {
-            get
-            {
-                if (_logger == null)
-                {
-                    //创建日志
-                    LoggerFactory factory = new LoggerFactory();
-                    foreach (ILoggerProvider loggerProvider in GetProviders())
-                    {
-                        factory.AddProvider(loggerProvider);
-                    }
-                    _logger = factory.CreateLogger("log");
-                }
-                return _logger;
-            }
-        }
+        public static ILogger Logger => _logger.Value;
 
         /// <summary>
         /// 从配置文件读取日志提供
