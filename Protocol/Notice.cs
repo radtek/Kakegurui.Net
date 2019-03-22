@@ -1,13 +1,14 @@
-﻿using Kakegurui.Core;
+﻿using System;
+using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
 {
     /// <summary>
     /// 通知字节流协议
     /// </summary>
-    public class Notice_Request:Protocol
+    public class Notice:Protocol
     {
-        public override byte Id => 0x05;
+        public override byte Id => Convert.ToByte(ProtocolId.Notice);
 
         /// <summary>
         /// 远程地址

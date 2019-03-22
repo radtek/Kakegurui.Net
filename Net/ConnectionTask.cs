@@ -63,33 +63,38 @@ namespace Kakegurui.Net
 
         protected override void ActionCore()
         {
+            int pollIndex = 0;
             while (!IsCancelled())
             {
-                _endPoints.AsParallel().ForAll(pair =>
+                if (pollIndex % 5 == 0)
                 {
-                    if (pair.Key.Socket?.Connected != true)
+                    _endPoints.AsParallel().ForAll(pair =>
                     {
-                        Socket socket = new Socket(
-                            AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
-                        try
+                        if (pair.Key.Socket?.Connected != true)
                         {
-                            socket.Connect(pair.Key.RemoteEndPoint);
-                            pair.Key.Socket = socket;
-                            pair.Key.LocalEndPoint = (IPEndPoint) socket.LocalEndPoint;
-                            pair.Key.Handler = pair.Key.Handler.Clone();
-                            pair.Key.StartTime = DateTime.Now;
-                            Connected?.Invoke(this, new SocketEventArgs
+                            Socket socket = new Socket(
+                                AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Stream, ProtocolType.Tcp);
+                            try
                             {
-                                Item=pair.Key
-                            });
+                                socket.Connect(pair.Key.RemoteEndPoint);
+                                pair.Key.Socket = socket;
+                                pair.Key.LocalEndPoint = (IPEndPoint)socket.LocalEndPoint;
+                                pair.Key.Handler = pair.Key.Handler.Clone();
+                                pair.Key.StartTime = DateTime.Now;
+                                Connected?.Invoke(this, new SocketEventArgs
+                                {
+                                    Item = pair.Key
+                                });
+                            }
+                            catch (SocketException)
+                            {
+                                socket.Close();
+                            }
                         }
-                        catch (SocketException)
-                        {
-                            socket.Close();
-                        }
-                    }
-                });
+                    });
+                }
 
+                ++pollIndex;
                 if (_endPoints.Count == 0 || _endPoints.All(e => e.Key.Socket?.Connected == true))
                 {
                     _eventWait.WaitOne();

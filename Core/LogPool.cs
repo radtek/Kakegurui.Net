@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Microsoft.Extensions.Logging;
@@ -27,9 +28,23 @@ namespace Kakegurui.Core
                 Directory.CreateDirectory(directory);
             }
 
-            //从配置文件添加日志
-            LoggerFactory factoty = new LoggerFactory();
-            for (int i = 0;; ++i)
+            //创建日志
+            LoggerFactory factory = new LoggerFactory();
+            foreach (ILoggerProvider loggerProvider in GetProviders())
+            {
+                factory.AddProvider(loggerProvider);
+            }
+            Logger = factory.CreateLogger("log");
+        }
+
+        /// <summary>
+        /// 从配置文件读取日志提供
+        /// </summary>
+        /// <returns></returns>
+        public static List<ILoggerProvider> GetProviders()
+        {
+            List<ILoggerProvider> providers = new List<ILoggerProvider>();
+            for (int i = 0; ; ++i)
             {
                 ILoggerProvider provider = ReadProvider(i);
                 if (provider == null)
@@ -38,12 +53,17 @@ namespace Kakegurui.Core
                 }
                 else
                 {
-                    factoty.AddProvider(provider);
+                    providers.Add(provider);
                 }
             }
 
-            Logger = factoty.CreateLogger("log");
+            return providers;
         }
+
+        /// <summary>
+        /// 日志接口
+        /// </summary>
+        public static ILogger Logger { get; }
 
         /// <summary>
         /// 删除文件
@@ -74,11 +94,6 @@ namespace Kakegurui.Core
                 }
             }
         }
-
-        /// <summary>
-        /// 日志接口
-        /// </summary>
-        public static ILogger Logger { get; }
 
         /// <summary>
         /// 从配置文件读取日志

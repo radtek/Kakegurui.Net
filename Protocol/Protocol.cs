@@ -4,6 +4,25 @@ using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
 {
+    public enum ProtocolId:byte
+    {
+        CollectStatus=0x01,
+        Shoot=0x03,
+        Notice=0x05
+    }
+
+    /// <summary>
+    /// 协议基类
+    /// </summary>
+    public abstract class Protocol
+    {
+        /// <summary>
+        /// 协议编号
+        /// </summary>
+        public abstract byte Id { get; }
+    }
+
+
     /// <summary>
     /// 协议头
     /// </summary>
@@ -37,17 +56,6 @@ namespace Kakegurui.Protocol
         /// </summary>
         [SerializeIndex(4)]
         public long TimeStamp { get; set; }
-    }
-
-    /// <summary>
-    /// 协议基类
-    /// </summary>
-    public abstract class Protocol
-    {
-        /// <summary>
-        /// 协议编号
-        /// </summary>
-        public abstract byte Id { get; }
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
@@ -57,7 +58,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class CollectStatus_Request:Protocol
     {
-        public override byte Id => 0x01;
+        public override byte Id => Convert.ToByte(ProtocolId.CollectStatus);
     }
 
     /// <summary>
@@ -65,7 +66,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class CollectStatus_Response:Protocol
     {
-        public override byte Id => 0x02;
+        public override byte Id => Convert.ToByte(Convert.ToByte(ProtocolId.CollectStatus) + 1);
 
         /// <summary>
         /// 套接字状态集合

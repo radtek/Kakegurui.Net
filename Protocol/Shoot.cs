@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Net;
 using Kakegurui.Core;
-using Kakegurui.Net;
 
 namespace Kakegurui.Protocol
 {
     /// <summary>
     /// 转发协议
     /// </summary>
-    public class Shoot_Request
+    public class Shoot_Request : Protocol
     {
         /// <summary>
         /// 构造函数
@@ -50,7 +49,7 @@ namespace Kakegurui.Protocol
             Buffer = buffer;
         }
 
-        public static byte Id => 0x03;
+        public override byte Id => Convert.ToByte(Kakegurui.Protocol.ProtocolId.Shoot);
 
         /// <summary>
         /// 本地地址ip
@@ -83,7 +82,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class Shoot_Response:Protocol
     {
-        public override byte Id => 0x04;
+        public override byte Id => Convert.ToByte(Convert.ToByte(ProtocolId.Shoot)+1);
 
         /// <summary>
         /// 转发结果
