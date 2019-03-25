@@ -28,37 +28,43 @@ namespace Kakegurui.Protocol
         public ProtocolMaid(string name)
             :base(name)
         {
-            _handler.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.CollectStatus))
-                .Subscribe(CollectStatus);
-            _handler.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.Shoot))
-                .Subscribe(Shoot);
+
         }
 
-        private readonly ProtocolHandler _handler = new ProtocolHandler();
 
         /// <summary>
         /// 添加tcp监听端口
         /// </summary>
         /// <param name="port">监听端口</param>
-        public void AddListenEndPoint(int port)
+        public SocketChannel AddListenEndPoint(int port)
         {
-            AddListenEndPoint(port,_handler);
+            SocketChannel channel = AddListenEndPoint(new ProtocolHandler(),port);
+            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.CollectStatus))
+                .Subscribe(CollectStatus);
+            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.Shoot))
+                .Subscribe(Shoot);
+            return channel;
         }
 
         /// <summary>
         /// 添加udp绑定端口
         /// </summary>
         /// <param name="port">监听端口</param>
-        public void AddBindEndPoint(int port)
+        public SocketChannel AddBindEndPoint(int port)
         {
-            AddBindEndPoint(_handler, port);
+            SocketChannel channel = AddBindEndPoint(new ProtocolHandler(), port);
+            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.CollectStatus))
+                .Subscribe(CollectStatus);
+            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.Shoot))
+                .Subscribe(Shoot);
+            return channel;
         }
 
         /// <summary>
         /// 收集状态
         /// </summary>
-        /// <param name="pack">协议包</param>
-        protected void CollectStatus(SocketPack pack)
+        /// <param name="args">协议包</param>
+        protected void CollectStatus(ReceivedEventArgs args)
         {
             CollectStatus_Response cs = new CollectStatus_Response
             {
@@ -69,8 +75,8 @@ namespace Kakegurui.Protocol
                 SocketStatus status = new SocketStatus
                 {
                     Tag = socket.Value.Tag,
-                    Transmit = socket.Value.Handler.TransmitSize,
-                    Receive = socket.Value.Handler.ReceiveSize,
+                    Transmit = socket.Value.TransmitSize,
+                    Receive = socket.Value.ReceiveSize,
                     LocalIp = BitConverter.ToUInt32(socket.Value.LocalEndPoint.Address.GetAddressBytes(), 0),
                     LocalPort = Convert.ToUInt16(socket.Value.LocalEndPoint.Port),
                     RemoteIp = BitConverter.ToUInt32(socket.Value.RemoteEndPoint.Address.GetAddressBytes(), 0),
@@ -78,17 +84,17 @@ namespace Kakegurui.Protocol
                 };
                 cs.SocketInfo.Add(status);
             }
-            pack.Handler.Send(pack.Socket, pack.RemoteEndPoint, Protocol.Response(pack.TimeStamp, cs));
+            args.Channel.Send(args.RemoteEndPoint, Protocol.Response(args.TimeStamp, cs));
         }
 
         /// <summary>
         /// 转发协议
         /// </summary>
-        /// <param name="pack">协议包</param>
-        protected void Shoot(SocketPack pack)
+        /// <param name="args">协议包</param>
+        protected void Shoot(ReceivedEventArgs args)
         {
             Shoot_Request request = new Shoot_Request();
-            ByteFormatter.Deserialize(request, pack.Buffer, pack.Offset+ProtocolHead.HeadSize);
+            ByteFormatter.Deserialize(request, args.Buffer, ProtocolHead.HeadSize);
             if (request.RemoteIp == 0 && request.RemotePort==0)
             {
                 SocketResult result = SendTcpAsync(request.Tag, request.Buffer,
@@ -98,10 +104,10 @@ namespace Kakegurui.Protocol
                             Shoot_Response shoot = new Shoot_Response
                             {
                                 Result = Convert.ToByte(SocketResult.Success),
-                                Buffer = p.Buffer.GetRange(p.Offset, p.Size)
+                                Buffer = p.Buffer
                             };
-                            List<byte> responseBuffer = Protocol.Response(pack.TimeStamp, shoot);
-                            pack.Handler.Send(pack.Socket, null, responseBuffer);
+                            List<byte> responseBuffer = Protocol.Response(args.TimeStamp, shoot);
+                            args.Channel.Send(null, responseBuffer);
                         });
 
                 if (result != SocketResult.Success)
@@ -111,7 +117,7 @@ namespace Kakegurui.Protocol
                         Result = Convert.ToByte(result),
                         Buffer = new List<byte>()
                     };
-                    pack.Handler.Send(pack.Socket, null, Protocol.Response(pack.TimeStamp, response));
+                    args.Channel.Send(null, Protocol.Response(args.TimeStamp, response));
                 }
             }
             else
@@ -126,10 +132,10 @@ namespace Kakegurui.Protocol
                             Shoot_Response shoot = new Shoot_Response
                             {
                                 Result = Convert.ToByte(SocketResult.Success),
-                                Buffer = p.Buffer.GetRange(p.Offset, p.Size)
+                                Buffer = p.Buffer
                             };
-                            List<byte> responseBuffer = Protocol.Response(pack.TimeStamp, shoot);
-                            pack.Handler.Send(pack.Socket, pack.RemoteEndPoint, responseBuffer);
+                            List<byte> responseBuffer = Protocol.Response(args.TimeStamp, shoot);
+                            args.Channel.Send(args.RemoteEndPoint, responseBuffer);
                         });
 
                 if (result != SocketResult.Success)
@@ -139,7 +145,7 @@ namespace Kakegurui.Protocol
                         Result = Convert.ToByte(result),
                         Buffer = new List<byte>()
                     };
-                    pack.Handler.Send(pack.Socket, remoteEndPoint, Protocol.Response(pack.TimeStamp, response));
+                    args.Channel.Send(remoteEndPoint, Protocol.Response(args.TimeStamp, response));
                 }
             }
         }

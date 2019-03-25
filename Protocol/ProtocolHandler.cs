@@ -9,9 +9,9 @@ namespace Kakegurui.Protocol
     /// <summary>
     /// 协议处理
     /// </summary>
-    public class ProtocolHandler:SocketHandler
+    public class ProtocolHandler:ISocketHandler
     {
-        protected override SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
+        public SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
         {
             int head=buffer.FindIndex(b => b == ProtocolHead.Tag);
      
