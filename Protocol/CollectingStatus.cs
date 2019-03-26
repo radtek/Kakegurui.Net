@@ -58,7 +58,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class CollectStatus_Request:Protocol
     {
-        public override byte Id => Convert.ToByte(ProtocolId.CollectStatus);
+        public override ushort Id => Convert.ToUInt16(ProtocolId.CollectStatus);
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class CollectStatus_Response:Protocol
     {
-        public override byte Id => Convert.ToByte(Convert.ToByte(ProtocolId.CollectStatus) + 1);
+        public override ushort Id => Convert.ToUInt16(ProtocolId.CollectStatus + 1);
 
         /// <summary>
         /// 套接字状态集合

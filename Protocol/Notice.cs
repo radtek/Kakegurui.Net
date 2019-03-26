@@ -8,7 +8,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class Notice:Protocol
     {
-        public override byte Id => Convert.ToByte(ProtocolId.Notice);
+        public override ushort Id => Convert.ToUInt16(ProtocolId.Notice);
 
         /// <summary>
         /// 远程地址

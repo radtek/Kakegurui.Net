@@ -4,11 +4,11 @@ using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
 {
-    public enum ProtocolId:byte
+    public enum ProtocolId:ushort
     {
-        CollectStatus=0x01,
-        Shoot=0x03,
-        Notice=0x05
+        CollectStatus=0x0001,
+        Shoot=0x0003,
+        Notice=0x0005
     }
 
     /// <summary>
@@ -19,7 +19,7 @@ namespace Kakegurui.Protocol
         /// <summary>
         /// 协议头长度
         /// </summary>
-        public const byte HeadSize = 12;
+        public const byte HeadSize = 13;
 
         /// <summary>
         /// 协议头识别码
@@ -31,7 +31,7 @@ namespace Kakegurui.Protocol
         /// 协议编号
         /// </summary>
         [SerializeIndex(2)]
-        public virtual byte Id { get; set; }
+        public virtual ushort Id { get; set; }
 
         /// <summary>
         /// 协议内容长度
@@ -54,7 +54,7 @@ namespace Kakegurui.Protocol
         /// <summary>
         /// 协议编号
         /// </summary>
-        public abstract byte Id { get; }
+        public abstract ushort Id { get; }
 
         /// <summary>
         /// 封包请求协议

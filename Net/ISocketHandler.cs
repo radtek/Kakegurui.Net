@@ -51,7 +51,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 发送协议编号
         /// </summary>
-        public int ProtocolId { get; set; }
+        public ushort ProtocolId { get; set; }
 
         /// <summary>
         /// 发送时间戳

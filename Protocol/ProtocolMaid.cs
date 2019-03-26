@@ -39,9 +39,9 @@ namespace Kakegurui.Protocol
         public SocketChannel AddListenEndPoint(int port)
         {
             SocketChannel channel = AddListenEndPoint(new ProtocolHandler(),port);
-            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.CollectStatus))
+            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
                 .Subscribe(CollectStatus);
-            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.Shoot))
+            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
                 .Subscribe(Shoot);
             return channel;
         }
@@ -52,10 +52,10 @@ namespace Kakegurui.Protocol
         /// <param name="port">监听端口</param>
         public SocketChannel AddBindEndPoint(int port)
         {
-            SocketChannel channel = AddBindEndPoint(new ProtocolHandler(), port);
-            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.CollectStatus))
+            SocketChannel channel = AddUdpServer(new ProtocolHandler(), port);
+            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
                 .Subscribe(CollectStatus);
-            channel.Where(p => p.ProtocolId == Convert.ToInt32(ProtocolId.Shoot))
+            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
                 .Subscribe(Shoot);
             return channel;
         }
@@ -79,8 +79,8 @@ namespace Kakegurui.Protocol
                     Receive = socket.Value.ReceiveSize,
                     LocalIp = BitConverter.ToUInt32(socket.Value.LocalEndPoint.Address.GetAddressBytes(), 0),
                     LocalPort = Convert.ToUInt16(socket.Value.LocalEndPoint.Port),
-                    RemoteIp = BitConverter.ToUInt32(socket.Value.RemoteEndPoint.Address.GetAddressBytes(), 0),
-                    RemotePort = Convert.ToUInt16(socket.Value.RemoteEndPoint.Port)
+                    RemoteIp = socket.Value.RemoteEndPoint==null?0: BitConverter.ToUInt32(socket.Value.RemoteEndPoint.Address.GetAddressBytes(), 0),
+                    RemotePort = Convert.ToUInt16(socket.Value.RemoteEndPoint?.Port ?? 0)
                 };
                 cs.SocketInfo.Add(status);
             }
@@ -95,58 +95,30 @@ namespace Kakegurui.Protocol
         {
             Shoot_Request request = new Shoot_Request();
             ByteFormatter.Deserialize(request, args.Buffer, ProtocolHead.HeadSize);
-            if (request.RemoteIp == 0 && request.RemotePort==0)
-            {
-                SocketResult result = SendTcpAsync(request.Tag, request.Buffer,
-                        p => p.ProtocolId == request.ProtocolId,
-                        p =>
-                        {
-                            Shoot_Response shoot = new Shoot_Response
-                            {
-                                Result = Convert.ToByte(SocketResult.Success),
-                                Buffer = p.Buffer
-                            };
-                            List<byte> responseBuffer = Protocol.Response(args.TimeStamp, shoot);
-                            args.Channel.Send(null, responseBuffer);
-                        });
-
-                if (result != SocketResult.Success)
+            IPEndPoint remoteEndPoint = new IPEndPoint(request.RemoteIp, request.RemotePort);
+            SocketResult result = SendAsync(request.Tag,
+                remoteEndPoint,
+                request.Buffer,
+                p => p.ProtocolId == request.ProtocolId,
+                p =>
                 {
-                    Shoot_Response response = new Shoot_Response
+                    Shoot_Response shoot = new Shoot_Response
                     {
-                        Result = Convert.ToByte(result),
-                        Buffer = new List<byte>()
+                        Result = Convert.ToByte(SocketResult.Success),
+                        Buffer = p.Buffer
                     };
-                    args.Channel.Send(null, Protocol.Response(args.TimeStamp, response));
-                }
-            }
-            else
-            {
-                IPEndPoint remoteEndPoint = new IPEndPoint(request.RemoteIp, request.RemotePort);
-                SocketResult result = SendUdpAsync(request.Tag,
-                        remoteEndPoint,
-                        request.Buffer,
-                        p => p.ProtocolId == request.ProtocolId,
-                        p =>
-                        {
-                            Shoot_Response shoot = new Shoot_Response
-                            {
-                                Result = Convert.ToByte(SocketResult.Success),
-                                Buffer = p.Buffer
-                            };
-                            List<byte> responseBuffer = Protocol.Response(args.TimeStamp, shoot);
-                            args.Channel.Send(args.RemoteEndPoint, responseBuffer);
-                        });
+                    List<byte> responseBuffer = Protocol.Response(args.TimeStamp, shoot);
+                    args.Channel.Send(args.RemoteEndPoint, responseBuffer);
+                });
 
-                if (result != SocketResult.Success)
+            if (result != SocketResult.Success)
+            {
+                Shoot_Response response = new Shoot_Response
                 {
-                    Shoot_Response response = new Shoot_Response
-                    {
-                        Result = Convert.ToByte(result),
-                        Buffer = new List<byte>()
-                    };
-                    args.Channel.Send(remoteEndPoint, Protocol.Response(args.TimeStamp, response));
-                }
+                    Result = Convert.ToByte(result),
+                    Buffer = new List<byte>()
+                };
+                args.Channel.Send(remoteEndPoint, Protocol.Response(args.TimeStamp, response));
             }
         }
     }

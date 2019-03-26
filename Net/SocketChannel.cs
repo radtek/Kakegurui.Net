@@ -16,11 +16,26 @@ namespace Kakegurui.Net
     /// </summary>
     public enum SocketResult
     {
+        /// <summary>
+        /// 发送成功
+        /// </summary>
         Success = 0,
+        /// <summary>
+        /// 发送失败
+        /// </summary>
         SendFailed = 1,
+        /// <summary>
+        /// 发送超时
+        /// </summary>
         Timeout = 2,
+        /// <summary>
+        /// 未找到套接字
+        /// </summary>
         NotFoundSocket = 3,
-        NotFoundHandler = 4
+        /// <summary>
+        /// 尚未连接到服务
+        /// </summary>
+        Disconnection = 4
     }
 
     /// <summary>
@@ -28,15 +43,26 @@ namespace Kakegurui.Net
     /// </summary>
     public enum SocketType
     {
-        None,
-        //Tcp监听
+        /// <summary>
+        /// Tcp监听
+        /// </summary>
         Listen,
-        //Tcp客户端
+        /// <summary>
+        /// Tcp客户端
+        /// </summary>
         Accept,
-        //Tcp服务端
+        /// <summary>
+        /// Tcp服务端
+        /// </summary>
         Connect,
-        //Udp
-        Bind
+        /// <summary>
+        /// Udp服务
+        /// </summary>
+        Udp_Server,
+        /// <summary>
+        /// udp客户端
+        /// </summary>
+        Udp_Client
     }
 
     /// <summary>
@@ -85,7 +111,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 发送协议编号
         /// </summary>
-        public int ProtocolId { get; set; }
+        public ushort ProtocolId { get; set; }
 
         /// <summary>
         /// 发送时间戳
@@ -195,12 +221,14 @@ namespace Kakegurui.Net
         /// <summary>
         /// 构造函数
         /// </summary>
-        public SocketChannel(SocketType type, IPEndPoint localEndPoint, IPEndPoint remoteEndPoint, string tag, ISocketHandler handler,Socket acceptSocket=null)
+        /// <param name="acceptSocket">客户端连入套接字</param>
+        /// <param name="type">套接字类型</param>
+        /// <param name="localEndPoint">套接字本地地址</param>
+        /// <param name="remoteEndPoint">套接字远程地址</param>
+        /// <param name="handler">套接字处理实例</param>
+        public SocketChannel(Socket acceptSocket,SocketType type, IPEndPoint localEndPoint, IPEndPoint remoteEndPoint,ISocketHandler handler)
         {
             Type = type;
-            LocalEndPoint = localEndPoint;
-            RemoteEndPoint = remoteEndPoint;
-            Tag = tag;
             StartTime = DateTime.Now;
             TransmitSize = 0;
             ReceiveSize = 0;
@@ -220,8 +248,10 @@ namespace Kakegurui.Net
                     LogPool.Logger.LogInformation(e, "{0} {1}", "listen_error", localEndPoint.ToString());
                     return;
                 }
-
                 Socket = socket;
+                LocalEndPoint = localEndPoint;
+                RemoteEndPoint = null;
+                Tag = null;
                 LogPool.Logger.LogInformation("{0} {1} {2}", "listen", socket.Handle, localEndPoint.ToString());
                 SocketAsyncEventArgs acceptArgs = new SocketAsyncEventArgs();
                 acceptArgs.Completed += AcceptedEventHandler;
@@ -236,8 +266,10 @@ namespace Kakegurui.Net
                 {
                     return;
                 }
-
                 Socket = acceptSocket;
+                LocalEndPoint = localEndPoint;
+                RemoteEndPoint = remoteEndPoint;
+                Tag = localEndPoint.Port.ToString();
                 SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
                 receiveArgs.Completed += ReceivedHandler;
                 receiveArgs.SetBuffer(new byte[BufferLength], 0, BufferLength);
@@ -247,7 +279,7 @@ namespace Kakegurui.Net
                     ReceivedHandler(acceptSocket, receiveArgs);
                 }
             }
-            else if (type == SocketType.Bind)
+            else if (type == SocketType.Udp_Server||type==SocketType.Udp_Client)
             {
                 Socket socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, ProtocolType.Udp);
                 try
@@ -262,7 +294,10 @@ namespace Kakegurui.Net
                 }
 
                 Socket = socket;
-                LogPool.Logger.LogInformation("{0} {1} {2}", "bind", socket.Handle, localEndPoint.ToString());
+                LocalEndPoint = localEndPoint;
+                RemoteEndPoint = null;
+                Tag = localEndPoint.ToString();
+                LogPool.Logger.LogInformation("{0} {1} {2}", type, socket.Handle, localEndPoint.ToString());
                 SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
                 receiveArgs.Completed += ReceivedHandler;
                 receiveArgs.SetBuffer(new byte[BufferLength], 0, BufferLength);
@@ -274,6 +309,8 @@ namespace Kakegurui.Net
             }
             else
             {
+                RemoteEndPoint = remoteEndPoint;
+                Tag = remoteEndPoint.ToString();
                 LogPool.Logger.LogInformation("{0} {1}", "connect", remoteEndPoint.ToString());
                 ConnectAsync(remoteEndPoint);
             }
@@ -349,12 +386,11 @@ namespace Kakegurui.Net
             }
 
             SocketChannel channel = new SocketChannel(
+                e.AcceptSocket,
                 SocketType.Accept,
                 (IPEndPoint) e.AcceptSocket.LocalEndPoint,
                 (IPEndPoint) e.AcceptSocket.RemoteEndPoint,
-                ((IPEndPoint) e.AcceptSocket.LocalEndPoint).Port.ToString(),
-                _handler,
-                e.AcceptSocket) {_observers = _observers};
+                _handler) {_observers = _observers};
             Accepted?.Invoke(this, new AcceptedEventArgs
             {
                 Socket = e.AcceptSocket,
@@ -388,28 +424,29 @@ namespace Kakegurui.Net
         {
             if (e.ConnectSocket == null)
             {
-                return;
+                ConnectAsync((IPEndPoint)e.RemoteEndPoint);
             }
-            LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.ConnectSocket.Handle, (IPEndPoint)e.ConnectSocket.LocalEndPoint, RemoteEndPoint);
-            _residueBuffer.Clear();
-            Socket = e.ConnectSocket;
-            LocalEndPoint = (IPEndPoint)e.ConnectSocket.LocalEndPoint;
-
-            SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
-            receiveArgs.Completed += ReceivedHandler;
-            receiveArgs.SetBuffer(new byte[BufferLength], 0, BufferLength);
-            receiveArgs.AcceptSocket = e.ConnectSocket;
-            if (!e.ConnectSocket.ReceiveAsync(receiveArgs))
+            else
             {
-                ReceivedHandler(e.ConnectSocket, receiveArgs);
+                LogPool.Logger.LogInformation("{0} {1} {2} {3}", "connected", e.ConnectSocket.Handle, (IPEndPoint)e.ConnectSocket.LocalEndPoint, RemoteEndPoint);
+                _residueBuffer.Clear();
+                Socket = e.ConnectSocket;
+                LocalEndPoint = (IPEndPoint)e.ConnectSocket.LocalEndPoint;
+                SocketAsyncEventArgs receiveArgs = new SocketAsyncEventArgs();
+                receiveArgs.Completed += ReceivedHandler;
+                receiveArgs.SetBuffer(new byte[BufferLength], 0, BufferLength);
+                receiveArgs.AcceptSocket = e.ConnectSocket;
+                if (!e.ConnectSocket.ReceiveAsync(receiveArgs))
+                {
+                    ReceivedHandler(e.ConnectSocket, receiveArgs);
+                }
+
+                Connected?.Invoke(this, new ConnectedEventArgs
+                {
+                    RemoteEndPoint = RemoteEndPoint,
+                    Socket = e.ConnectSocket
+                });
             }
-
-            Connected?.Invoke(this, new ConnectedEventArgs
-            {
-                RemoteEndPoint = RemoteEndPoint,
-                Socket = e.ConnectSocket
-            });
-
         }
 
         /// <summary>
@@ -441,6 +478,8 @@ namespace Kakegurui.Net
                     Socket.Close();
                     if (Type == SocketType.Connect)
                     {
+                        Socket = null;
+                        LocalEndPoint = null;
                         ConnectAsync(RemoteEndPoint);
                     }
                 }
@@ -449,7 +488,7 @@ namespace Kakegurui.Net
             {
                 try
                 {
-                    if (Type == SocketType.Bind)
+                    if (Type == SocketType.Udp_Server||Type==SocketType.Udp_Client)
                     {
                         Handle(e.Buffer, e.BytesTransferred, (IPEndPoint)e.RemoteEndPoint);
                         if (!Socket.ReceiveFromAsync(e))
@@ -535,6 +574,10 @@ namespace Kakegurui.Net
         /// <returns>发送结果</returns>
         private SocketResult SendCore(IPEndPoint remoteEndPoint, List<byte> buffer)
         {
+            if (Socket == null)
+            {
+                return SocketResult.Disconnection;
+            }
             byte[] temp = buffer.ToArray();
             if (temp.Length == 0)
             {
@@ -543,7 +586,8 @@ namespace Kakegurui.Net
             TransmitSize += Convert.ToUInt32(temp.Length);
             try
             {
-                if (remoteEndPoint == null)
+                if (remoteEndPoint == null
+                    ||remoteEndPoint.Address.Equals(IPAddress.Any)&& remoteEndPoint.Port==0)
                 {
                     Log("{0} {1} {2} {3}", Socket.Handle, "-", temp.Length, ByteConvert.ToHex(temp));
                     int written = 0;

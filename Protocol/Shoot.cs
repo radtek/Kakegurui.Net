@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
 using Kakegurui.Core;
 
 namespace Kakegurui.Protocol
@@ -10,46 +9,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class Shoot_Request : Protocol
     {
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        public Shoot_Request()
-        {
-
-        }
-
-        /// <summary>
-        /// 构造函数 tcp
-        /// </summary>
-        /// <param name="tag">连入套接字标记</param>
-        /// <param name="protocol">等待协议编号</param>
-        /// <param name="buffer">字节流</param>
-        public Shoot_Request(string tag, short protocol, List<byte> buffer)
-        {
-            Tag = tag;
-            RemoteIp = 0;
-            RemotePort = 0;
-            ProtocolId = protocol;
-            Buffer = buffer;
-        }
-
-        /// <summary>
-        /// 构造函数 udp
-        /// </summary>
-        /// <param name="tag">连入套接字标记</param>
-        /// <param name="remoteEndPoint">udp远程地址</param>
-        /// <param name="protocol">等待协议编号</param>
-        /// <param name="buffer">字节流</param>
-        public Shoot_Request(string tag,IPEndPoint remoteEndPoint, short protocol, List<byte> buffer)
-        {
-            Tag = tag;
-            RemoteIp = BitConverter.ToUInt32(remoteEndPoint.Address.GetAddressBytes(),0);
-            RemotePort = Convert.ToUInt16(remoteEndPoint.Port);
-            ProtocolId = protocol;
-            Buffer = buffer;
-        }
-
-        public override byte Id => Convert.ToByte(Kakegurui.Protocol.ProtocolId.Shoot);
+        public override ushort Id => Convert.ToUInt16(Kakegurui.Protocol.ProtocolId.Shoot);
 
         /// <summary>
         /// 本地地址ip
@@ -69,7 +29,7 @@ namespace Kakegurui.Protocol
         /// <summary>
         /// 等待协议编号
         /// </summary>
-        [SerializeIndex(4)] public short ProtocolId { get; set; }
+        [SerializeIndex(4)] public ushort ProtocolId { get; set; }
 
         /// <summary>
         /// 发送字节流
@@ -82,7 +42,7 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class Shoot_Response:Protocol
     {
-        public override byte Id => Convert.ToByte(Convert.ToByte(ProtocolId.Shoot)+1);
+        public override ushort Id => Convert.ToUInt16(ProtocolId.Shoot+1);
 
         /// <summary>
         /// 转发结果
