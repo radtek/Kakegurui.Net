@@ -77,8 +77,8 @@ namespace Kakegurui.Protocol
                     Tag = socket.Value.Tag,
                     Transmit = socket.Value.TransmitSize,
                     Receive = socket.Value.ReceiveSize,
-                    LocalIp = BitConverter.ToUInt32(socket.Value.LocalEndPoint.Address.GetAddressBytes(), 0),
-                    LocalPort = Convert.ToUInt16(socket.Value.LocalEndPoint.Port),
+                    LocalIp = socket.Value.LocalEndPoint==null?0:BitConverter.ToUInt32(socket.Value.LocalEndPoint.Address.GetAddressBytes(), 0),
+                    LocalPort = Convert.ToUInt16(socket.Value.LocalEndPoint?.Port ?? 0),
                     RemoteIp = socket.Value.RemoteEndPoint==null?0: BitConverter.ToUInt32(socket.Value.RemoteEndPoint.Address.GetAddressBytes(), 0),
                     RemotePort = Convert.ToUInt16(socket.Value.RemoteEndPoint?.Port ?? 0)
                 };

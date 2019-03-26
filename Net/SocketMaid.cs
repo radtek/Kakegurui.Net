@@ -168,7 +168,7 @@ namespace Kakegurui.Net
         /// <param name="receiveBuffer">同步等待响应后得到的响应字节流，默认为null</param>
         /// <param name="timeout">等待响应时间，默认为3秒</param>
         /// <returns>发送结果</returns>
-        public SocketResult Send(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, List<byte> receiveBuffer, int timeout = 3000)
+        public SocketResult Send(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, List<byte> receiveBuffer=null, int timeout = 3000)
         {
             var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
             return socket.Key==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, null, receiveBuffer, timeout);
@@ -193,7 +193,7 @@ namespace Kakegurui.Net
         protected override void ActionCore()
         {
             int monitorPoll = 0;
-            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 20;
+            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 60;
             while (!IsCancelled())
             {
                 if (monitorPoll % monitorSpan == 0)
