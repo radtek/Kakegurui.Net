@@ -447,6 +447,7 @@ namespace Kakegurui.Net
                     Socket = e.ConnectSocket
                 });
             }
+            //Thread.Sleep(5000);
         }
 
         /// <summary>
@@ -456,7 +457,32 @@ namespace Kakegurui.Net
         /// <param name="e"></param>
         private void ReceivedHandler(object sender, SocketAsyncEventArgs e)
         {
-            if (e.BytesTransferred == 0)
+            if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
+            {
+                try
+                {
+                    if (Type == SocketType.Udp_Server || Type == SocketType.Udp_Client)
+                    {
+                        Handle(e.Buffer, e.BytesTransferred, (IPEndPoint)e.RemoteEndPoint);
+                        if (!Socket.ReceiveFromAsync(e))
+                        {
+                            ReceivedHandler(Socket, e);
+                        }
+                    }
+                    else
+                    {
+                        Handle(e.Buffer, e.BytesTransferred);
+                        if (!Socket.ReceiveAsync(e))
+                        {
+                            ReceivedHandler(Socket, e);
+                        }
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+            else
             {
                 if (!_closed)
                 {
@@ -480,33 +506,12 @@ namespace Kakegurui.Net
                     {
                         Socket = null;
                         LocalEndPoint = null;
+                        //在和tomcat中对接的时候发现在tomcat启动和
+                        //结束的时候，服务会释放连入的连接
+                        //但是此时服务还可以连接，就造成了短时间内的多次连接
+                        Thread.Sleep(5000);
                         ConnectAsync(RemoteEndPoint);
                     }
-                }
-            }
-            else
-            {
-                try
-                {
-                    if (Type == SocketType.Udp_Server||Type==SocketType.Udp_Client)
-                    {
-                        Handle(e.Buffer, e.BytesTransferred, (IPEndPoint)e.RemoteEndPoint);
-                        if (!Socket.ReceiveFromAsync(e))
-                        {
-                            ReceivedHandler(Socket, e);
-                        }
-                    }
-                    else
-                    {
-                        Handle(e.Buffer, e.BytesTransferred);
-                        if (!Socket.ReceiveAsync(e))
-                        {
-                            ReceivedHandler(Socket, e);
-                        }
-                    }
-                }
-                catch (ObjectDisposedException)
-                {
                 }
             }
         }
@@ -698,6 +703,11 @@ namespace Kakegurui.Net
                 offset += packet.Offset + packet.Size;
             } while (offset < _residueBuffer.Count);
             _residueBuffer.Clear();
+        }
+
+        public override string ToString()
+        {
+            return $"{Socket?.Handle} local:{(LocalEndPoint == null ? "-" : LocalEndPoint.ToString())} remote:{(RemoteEndPoint == null ? "-" : RemoteEndPoint.ToString())} tag:{Tag ?? "-"} t:{TransmitSize} r:{ReceiveSize} time:{StartTime:yyyy-MM-dd HH:mm:ss.fff}";
         }
     };
 }

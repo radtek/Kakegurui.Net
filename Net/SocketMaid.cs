@@ -19,7 +19,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 套接字集合
         /// </summary>
-        protected readonly ConcurrentDictionary<Socket,SocketChannel> _sockets=new ConcurrentDictionary<Socket, SocketChannel>();
+        protected readonly ConcurrentDictionary<int, SocketChannel> _sockets=new ConcurrentDictionary<int, SocketChannel>();
 
         /// <summary>
         /// 构造函数
@@ -48,7 +48,7 @@ namespace Kakegurui.Net
         protected virtual void AcceptedEventHandler(object sender, AcceptedEventArgs e)
         {
             e.Channel.Closed += ClosedEventHandler;
-            _sockets[e.Socket] = e.Channel;
+            _sockets[e.Socket.Handle.ToInt32()] = e.Channel;
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace Kakegurui.Net
         protected virtual void ConnectedEventHandler(object sender, ConnectedEventArgs e)
         {
             ((SocketChannel) sender).Closed += ClosedEventHandler;
-            _sockets[e.Socket] = (SocketChannel) sender;
+            _sockets[e.Socket.Handle.ToInt32()] = (SocketChannel) sender;
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace Kakegurui.Net
         /// <param name="e"></param>
         protected virtual void ClosedEventHandler(object sender, ClosedEventArgs e)
         {
-            _sockets.TryRemove(e.Socket, out SocketChannel channel);
+            _sockets.TryRemove(e.Socket.Handle.ToInt32(), out SocketChannel channel);
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Kakegurui.Net
             if (channel.Socket != null)
             {
                 channel.Accepted += AcceptedEventHandler;
-                _sockets[channel.Socket] = channel;
+                _sockets[channel.Socket.Handle.ToInt32()] = channel;
             }
             return channel;
         }
@@ -112,7 +112,7 @@ namespace Kakegurui.Net
             SocketChannel channel= new SocketChannel(null,SocketType.Udp_Server, localEndPoint, null, handler);
             if (channel.Socket != null)
             {
-                _sockets[channel.Socket] = channel;
+                _sockets[channel.Socket.Handle.ToInt32()] = channel;
             }
             return channel;
         }
@@ -128,7 +128,7 @@ namespace Kakegurui.Net
             SocketChannel channel = new SocketChannel(null, SocketType.Udp_Client, localEndPoint, null, handler);
             if (channel.Socket != null)
             {
-                _sockets[channel.Socket] = channel;
+                _sockets[channel.Socket.Handle.ToInt32()] = channel;
             }
             return channel;
         }
@@ -137,7 +137,7 @@ namespace Kakegurui.Net
         /// 主动移除套接字
         /// </summary>
         /// <param name="socket">套接字</param>
-        protected void RemoveSocket(Socket socket)
+        protected void RemoveSocket(int socket)
         {
             if (_sockets.TryRemove(socket, out SocketChannel channel))
             {
@@ -171,7 +171,7 @@ namespace Kakegurui.Net
         public SocketResult Send(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, List<byte> receiveBuffer, int timeout = 3000)
         {
             var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
-            return socket.Key == null ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, null, receiveBuffer, timeout);
+            return socket.Key==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, null, receiveBuffer, timeout);
         }
 
         /// <summary>
@@ -187,13 +187,13 @@ namespace Kakegurui.Net
         public SocketResult SendAsync(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, Action<ReceivedEventArgs> action, int timeout = 3000)
         {
             var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
-            return socket.Key == null ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, action, null, timeout);
+            return socket.Key ==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, action, null, timeout);
         }
 
         protected override void ActionCore()
         {
             int monitorPoll = 0;
-            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 60;
+            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 20;
             while (!IsCancelled())
             {
                 if (monitorPoll % monitorSpan == 0)
@@ -202,25 +202,8 @@ namespace Kakegurui.Net
                     builder.Append("socket:\n");
                     foreach (var socket in _sockets)
                     {
-                        try
-                        {
-                            builder.AppendFormat("{0} local:{1} remote:{2} tag:{3} t:{4} r:{5} time:{6:yyyy-MM-dd HH:mm:ss.fff}\n",
-                                socket.Key.Handle,
-                                socket.Value.LocalEndPoint,
-                                socket.Value.RemoteEndPoint,
-                                socket.Value.Tag,
-                                socket.Value.TransmitSize,
-                                socket.Value.ReceiveSize, socket.Value.StartTime);
-                        }
-                        catch (SocketException)
-                        {
-                            builder.AppendFormat("{0} local:{1} tag:{2} t:{3} r:{4}\n",
-                                socket.Key.Handle,
-                                socket.Value.LocalEndPoint,
-                                socket.Value.Tag,
-                                socket.Value.TransmitSize,
-                                socket.Value.ReceiveSize);
-                        }
+                        builder.Append(socket.Value);
+                        builder.Append("\n");
                     }
                     LogPool.Logger.LogTrace(builder.ToString());
                 }
