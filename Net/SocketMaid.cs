@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using Kakegurui.Core;
@@ -201,7 +200,7 @@ namespace Kakegurui.Net
         protected override void ActionCore()
         {
             int monitorPoll = 0;
-            int monitorSpan = AppConfig.ReadInt32("MonitorSpan") ?? 60;
+            int monitorSpan = AppConfig.MonitorSpan;
             while (!IsCancelled())
             {
                 if (monitorPoll % monitorSpan == 0)

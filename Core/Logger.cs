@@ -5,125 +5,29 @@ using Microsoft.Extensions.Logging;
 namespace Kakegurui.Core
 {
     /// <summary>
-    /// 日志筛选接口
-    /// </summary>
-    public interface ILogFilter
-    {
-        bool Filter(LogLevel level);
-    }
-
-    /// <summary>
-    /// 任意级别
-    /// </summary>
-    public class AllFilter : ILogFilter
-    {
-        public bool Filter(LogLevel level)
-        {
-            return true;
-        }
-    }
-
-    /// <summary>
-    /// 等于
-    /// </summary>
-    public class EqualFilter : ILogFilter
-    {
-        private readonly LogLevel _level;
-
-        public EqualFilter(LogLevel level)
-        {
-            _level = level;
-        }
-        public bool Filter(LogLevel level)
-        {
-            return level == _level;
-        }
-    }
-
-    /// <summary>
-    /// 不等于
-    /// </summary>
-    public class NotEqualFilter : ILogFilter
-    {
-        private readonly LogLevel _level;
-
-        public NotEqualFilter(LogLevel level)
-        {
-            _level = level;
-        }
-        public bool Filter(LogLevel level)
-        {
-            return level != _level;
-        }
-    }
-
-    /// <summary>
-    /// 大于等于
-    /// </summary>
-    public class HigherEqualFilter : ILogFilter
-    {
-        private readonly LogLevel _level;
-
-        public HigherEqualFilter(LogLevel level)
-        {
-            _level = level;
-        }
-        public bool Filter(LogLevel level)
-        {
-            return level >= _level;
-        }
-    }
-
-    /// <summary>
-    /// 大于
-    /// </summary>
-    public class HigherFilter : ILogFilter
-    {
-        private readonly LogLevel _level;
-
-        public HigherFilter(LogLevel level)
-        {
-            _level = level;
-        }
-        public bool Filter(LogLevel level)
-        {
-            return level > _level;
-        }
-    }
-
-    /// <summary>
-    /// 范围
-    /// </summary>
-    public class RangeFilter : ILogFilter
-    {
-        private readonly LogLevel _minLevel;
-        private readonly LogLevel _maxLevel;
-
-        public RangeFilter(LogLevel minLevel,LogLevel maxLevel)
-        {
-            _minLevel = minLevel;
-            _maxLevel = maxLevel;
-        }
-        public bool Filter(LogLevel level)
-        {
-            return level >= _minLevel && level<= _maxLevel;
-        }
-    }
-
-    /// <summary>
     /// 日志类
     /// </summary>
     public abstract class Logger:ILoggerProvider,ILogger
     {
-        private readonly ILogFilter _filter;
+        /// <summary>
+        /// 日志筛选最低级别
+        /// </summary>
+        private readonly LogLevel _minLevel;
+
+        /// <summary>
+        /// 日志筛选最高级别
+        /// </summary>
+        private readonly LogLevel _maxLevel;
 
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="filter">日志筛选接口</param>
-        protected Logger(ILogFilter filter)
+        /// <param name="minLevel">日志筛选最低级别</param>
+        /// <param name="maxLevel">日志筛选最高级别</param>
+        protected Logger(LogLevel minLevel, LogLevel maxLevel)
         {
-            _filter = filter;
+            _minLevel = minLevel;
+            _maxLevel = maxLevel;
         }
 
         /// <summary>
@@ -164,7 +68,7 @@ namespace Kakegurui.Core
 
         public bool IsEnabled(LogLevel logLevel)
         {
-            return _filter != null && _filter.Filter(logLevel);
+            return logLevel >= _minLevel && logLevel <= _maxLevel;
         }
 
         public IDisposable BeginScope<TState>(TState state)

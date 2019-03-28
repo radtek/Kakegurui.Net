@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
 {
@@ -10,9 +11,10 @@ namespace Kakegurui.Core
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="filter">日志筛选接口</param>
-        public ConsoleLogger(ILogFilter filter)
-            :base(filter)
+        /// <param name="minLevel">日志筛选最低级别</param>
+        /// <param name="maxLevel">日志筛选最高级别</param>
+        public ConsoleLogger(LogLevel minLevel, LogLevel maxLevel)
+            :base(minLevel,maxLevel)
         {
 
         }

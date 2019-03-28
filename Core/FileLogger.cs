@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
 {
@@ -41,20 +42,21 @@ namespace Kakegurui.Core
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="filter">日志筛选接口</param>
+        /// <param name="minLevel">日志筛选最低级别</param>
+        /// <param name="maxLevel">日志筛选最高级别</param>
         /// <param name="name">日志名称</param>
-        public FileLogger(ILogFilter filter, string name)
-            :base(filter)
+        public FileLogger(LogLevel minLevel, LogLevel maxLevel, string name)
+            :base(minLevel,maxLevel)
         {
             _name = name;
             _date= DateTime.Today;
 
             //读取文件日志参数
-            _directory = AppConfig.ReadString("Log:File:Directory") ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"../log/");
-            _holdDays = AppConfig.ReadInt32("Log:File:HoldDays") ?? 0;
+            _directory = AppConfig.LogDirectory;
+            _holdDays = AppConfig.LogHoldDays;
 
             _fs = new FileStream(
-                Path.Combine(_directory, string.Format("{0}_{1}.log", _name, _date.ToString("yyMMdd"))),
+                Path.Combine(_directory, $"{_name}_{_date:yyMMdd}.log"),
                 FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
             _sw = new StreamWriter(_fs);
 

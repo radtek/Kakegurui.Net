@@ -315,7 +315,7 @@ namespace Kakegurui.Net
             }
             else if(type==SocketType.Connect)
             {
-                _connectionSpan = AppConfig.ReadInt32("ConnectionSpan") ?? 5;
+                _connectionSpan = AppConfig.ConnectionSpan;
                 RemoteEndPoint = remoteEndPoint;
                 Tag = remoteEndPoint.ToString();
                 LogPool.Logger.LogInformation("{0} {1}", "connect", remoteEndPoint.ToString());
@@ -530,7 +530,7 @@ namespace Kakegurui.Net
         /// <param name="logName">日志名</param>
         public void SetLogger(string logName)
         {
-            _logger = new FileLogger(new AllFilter(), logName);
+            _logger = new FileLogger(LogLevel.Information,LogLevel.Information, logName);
         }
 
         /// <summary>
