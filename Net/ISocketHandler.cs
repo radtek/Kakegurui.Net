@@ -34,11 +34,6 @@ namespace Kakegurui.Net
         public AnalysisResult Result { get; set; }
 
         /// <summary>
-        /// 字节流
-        /// </summary>
-        public List<byte> Buffer { get; set; }
-
-        /// <summary>
         /// 发送字节流偏移
         /// </summary>
         public int Offset { get; set; }

@@ -151,11 +151,13 @@ namespace Kakegurui.Net
         /// <param name="tag">套接字标记</param>
         /// <param name="buffer">字节流</param>
         /// <returns>发送结果</returns>
-        public IEnumerable<SocketResult> Broadcast(string tag, List<byte> buffer)
+        public void Broadcast(string tag, List<byte> buffer)
         {
-            return _sockets.AsParallel()
-                .Where(s => s.Value.Tag == tag)
-                .Select(s => s.Value.Send(null, buffer));
+            foreach (var socket in _sockets.AsParallel()
+                .Where(s => s.Value.Tag == tag))
+            {
+                socket.Value.Send(null, buffer);
+            }
         }
 
         /// <summary>
@@ -170,7 +172,10 @@ namespace Kakegurui.Net
         /// <returns>发送结果</returns>
         public SocketResult Send(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, List<byte> receiveBuffer=null, int timeout = 3000)
         {
-            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            var socket = _sockets
+                .Where(s => s.Value.Tag == tag)
+                .OrderByDescending(s=>s.Value.StartTime)
+                .FirstOrDefault();
             return socket.Key==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, null, receiveBuffer, timeout);
         }
 
@@ -186,7 +191,10 @@ namespace Kakegurui.Net
         /// <returns>发送结果</returns>
         public SocketResult SendAsync(string tag, IPEndPoint remoteEndPoint, List<byte> buffer, Func<ReceivedEventArgs, bool> match, Action<ReceivedEventArgs> action, int timeout = 3000)
         {
-            var socket = _sockets.FirstOrDefault(s => s.Value.Tag == tag);
+            var socket = _sockets
+                .Where(s => s.Value.Tag == tag)
+                .OrderByDescending(s => s.Value.StartTime)
+                .FirstOrDefault();
             return socket.Key ==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, action, null, timeout);
         }
 

@@ -144,6 +144,32 @@ namespace Kakegurui.Net
         private ILogger _logger;
 
         /// <summary>
+        /// 套接字包处理实例
+        /// </summary>
+        private readonly ISocketHandler _handler;
+
+        /// <summary>
+        /// 表示是否调用过Close方法
+        /// </summary>
+        private bool _closed;
+
+        /// <summary>
+        /// 重连的间隔时间
+        /// </summary>
+        private int _connectionSpan;
+
+        /// <summary>
+        /// 残包
+        /// </summary>
+        private readonly List<byte> _residueBuffer = new List<byte>();
+
+        /// <summary>
+        /// 订阅接收字节流
+        /// </summary>
+        private ConcurrentDictionary<IObserver<ReceivedEventArgs>, object> _observers = new ConcurrentDictionary<IObserver<ReceivedEventArgs>, object>();
+
+
+        /// <summary>
         /// 套接字
         /// </summary>
         public Socket Socket { get; private set; }
@@ -184,26 +210,6 @@ namespace Kakegurui.Net
         public ulong ReceiveSize { get; private set; }
 
         /// <summary>
-        /// 套接字包处理实例
-        /// </summary>
-        private readonly ISocketHandler _handler;
-
-        /// <summary>
-        /// 表示是否调用过Close方法
-        /// </summary>
-        private bool _closed;
-
-        /// <summary>
-        /// 残包
-        /// </summary>
-        private readonly List<byte> _residueBuffer = new List<byte>();
-
-        /// <summary>
-        /// 订阅接收字节流
-        /// </summary>
-        private ConcurrentDictionary<IObserver<ReceivedEventArgs>, object> _observers = new ConcurrentDictionary<IObserver<ReceivedEventArgs>, object>();
-
-        /// <summary>
         /// 客户端连入事件
         /// </summary>
         public event EventHandler<AcceptedEventArgs> Accepted;
@@ -226,7 +232,7 @@ namespace Kakegurui.Net
         /// <param name="localEndPoint">套接字本地地址</param>
         /// <param name="remoteEndPoint">套接字远程地址</param>
         /// <param name="handler">套接字处理实例</param>
-        public SocketChannel(Socket acceptSocket,SocketType type, IPEndPoint localEndPoint, IPEndPoint remoteEndPoint,ISocketHandler handler)
+        public SocketChannel(Socket acceptSocket, SocketType type, IPEndPoint localEndPoint, IPEndPoint remoteEndPoint, ISocketHandler handler)
         {
             Type = type;
             StartTime = DateTime.Now;
@@ -307,8 +313,9 @@ namespace Kakegurui.Net
                     ReceivedHandler(socket, receiveArgs);
                 }
             }
-            else
+            else if(type==SocketType.Connect)
             {
+                _connectionSpan = AppConfig.ReadInt32("ConnectionSpan") ?? 5;
                 RemoteEndPoint = remoteEndPoint;
                 Tag = remoteEndPoint.ToString();
                 LogPool.Logger.LogInformation("{0} {1}", "connect", remoteEndPoint.ToString());
@@ -424,6 +431,7 @@ namespace Kakegurui.Net
         {
             if (e.ConnectSocket == null)
             {
+                Thread.Sleep(TimeSpan.FromSeconds(_connectionSpan));
                 ConnectAsync((IPEndPoint)e.RemoteEndPoint);
             }
             else
@@ -447,7 +455,7 @@ namespace Kakegurui.Net
                     Socket = e.ConnectSocket
                 });
             }
-            //Thread.Sleep(5000);
+
         }
 
         /// <summary>
@@ -509,11 +517,31 @@ namespace Kakegurui.Net
                         //在和tomcat中对接的时候发现在tomcat启动和
                         //结束的时候，服务会释放连入的连接
                         //但是此时服务还可以连接，就造成了短时间内的多次连接
-                        Thread.Sleep(5000);
+                        Thread.Sleep(TimeSpan.FromSeconds(_connectionSpan));
                         ConnectAsync(RemoteEndPoint);
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 设置日志
+        /// </summary>
+        /// <param name="logName">日志名</param>
+        public void SetLogger(string logName)
+        {
+            _logger = new FileLogger(new AllFilter(), logName);
+        }
+
+        /// <summary>
+        /// 写日志
+        /// </summary>
+        /// <param name="message">日志格式</param>
+        /// <param name="args">日志内容</param>
+        private void Log(string message, params object[] args)
+        {
+            LogPool.Logger.LogDebug(message, args);
+            _logger?.LogInformation(message, args);
         }
 
         /// <summary>
@@ -633,26 +661,6 @@ namespace Kakegurui.Net
         }
 
         /// <summary>
-        /// 设置日志
-        /// </summary>
-        /// <param name="logName">日志名</param>
-        public void SetLogger(string logName)
-        {
-            _logger = new FileLogger(new AllFilter(), logName);
-        }
-
-        /// <summary>
-        /// 写日志
-        /// </summary>
-        /// <param name="message">日志格式</param>
-        /// <param name="args">日志内容</param>
-        private void Log(string message, params object[] args)
-        {
-            LogPool.Logger.LogDebug(message, args);
-            _logger?.LogInformation(message, args);
-        }
-
-        /// <summary>
         /// 处理接收字节流
         /// </summary>
         /// <param name="buffer">字节流</param>
@@ -689,7 +697,6 @@ namespace Kakegurui.Net
                         TimeStamp = packet.TimeStamp
                     };
 
-                    packet.Buffer = _residueBuffer;
                     foreach (var pair in _observers)
                     {
                         pair.Key.OnNext(args);
