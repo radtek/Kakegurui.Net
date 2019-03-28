@@ -156,7 +156,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// 重连的间隔时间
         /// </summary>
-        private int _connectionSpan;
+        private readonly int _connectionSpan;
 
         /// <summary>
         /// 残包

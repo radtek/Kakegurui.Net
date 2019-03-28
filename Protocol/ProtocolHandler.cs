@@ -11,9 +11,9 @@ namespace Kakegurui.Protocol
     /// </summary>
     public class ProtocolHandler:ISocketHandler
     {
-        public SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int start)
+        public SocketPack Unpack(Socket socket,IPEndPoint remoteEndPoint, List<byte> buffer, int offset)
         {
-            int head=buffer.FindIndex(b => b == ProtocolHead.Tag);
+            int head=buffer.FindIndex(offset,b => b == ProtocolHead.Tag);
      
             //未找到协议
             if (head == -1)
@@ -21,21 +21,20 @@ namespace Kakegurui.Protocol
                 return new SocketPack
                 {
                     Result = AnalysisResult.Empty,
-                    Offset = 0,
-                    Size = buffer.Count- start
+                    Offset = offset,
+                    Size = buffer.Count- offset
                 };
             }
             else
             {
-                int offset = start - head;
-                int lessSize = buffer.Count - offset - head;
+                int lessSize = buffer.Count - head;
                 //长度小于协议头
                 if (lessSize < ProtocolHead.HeadSize)
                 {
                     return new SocketPack
                     {
                         Result = AnalysisResult.Half,
-                        Offset = offset,
+                        Offset = head,
                         Size = lessSize
                     };
                 }
@@ -50,7 +49,7 @@ namespace Kakegurui.Protocol
                         return new SocketPack
                         {
                             Result = AnalysisResult.Half,
-                            Offset = offset,
+                            Offset = head,
                             Size = lessSize
                         };
                     }
@@ -59,7 +58,7 @@ namespace Kakegurui.Protocol
                         return new SocketPack
                         {
                             Result = AnalysisResult.Full,
-                            Offset = offset,
+                            Offset = head,
                             Size = protocolHead.ContentSize + ProtocolHead.HeadSize,
                             ProtocolId = protocolHead.Id,
                             TimeStamp = protocolHead.TimeStamp
