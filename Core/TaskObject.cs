@@ -87,10 +87,7 @@ namespace Kakegurui.Core
         public virtual void Stop()
         {
             _cts.Cancel();
-            while (!_task.IsCompleted)
-            {
-                Thread.Sleep(TimeSpan.FromMilliseconds(100));
-            }
+            _task.Wait();
         }
     }
 }
