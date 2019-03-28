@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Reactive.Linq;
 using Kakegurui.Core;
 using Kakegurui.Net;
 
@@ -31,7 +30,6 @@ namespace Kakegurui.Protocol
 
         }
 
-
         /// <summary>
         /// 添加tcp监听端口
         /// </summary>
@@ -39,10 +37,17 @@ namespace Kakegurui.Protocol
         public SocketChannel AddListenEndPoint(int port)
         {
             SocketChannel channel = AddListenEndPoint(new ProtocolHandler(),port);
-            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
-                .Subscribe(CollectStatus);
-            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
-                .Subscribe(Shoot);
+            channel.Subscribe(p =>
+                {
+                    if (p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
+                    {
+                        CollectStatus(p);
+                    }
+                    else if (p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
+                    {
+                        Shoot(p);
+                    }
+                });
             return channel;
         }
 
@@ -53,10 +58,17 @@ namespace Kakegurui.Protocol
         public SocketChannel AddBindEndPoint(int port)
         {
             SocketChannel channel = AddUdpServer(new ProtocolHandler(), port);
-            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
-                .Subscribe(CollectStatus);
-            channel.Where(p => p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
-                .Subscribe(Shoot);
+            channel.Subscribe(p =>
+            {
+                if (p.ProtocolId == Convert.ToUInt16(ProtocolId.CollectStatus))
+                {
+                    CollectStatus(p);
+                }
+                else if (p.ProtocolId == Convert.ToUInt16(ProtocolId.Shoot))
+                {
+                    Shoot(p);
+                }
+            });
             return channel;
         }
 
