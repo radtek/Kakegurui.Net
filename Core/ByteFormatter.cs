@@ -179,6 +179,10 @@ namespace Kakegurui.Core
                     if (property.CanWrite)
                     {
                         var t = ToValue(property.PropertyType, buffer, offset + size);
+                        if (t.Item2 == -1)
+                        {
+                            return -1;
+                        }
                         property.SetValue(value, t.Item1);
                         size += t.Item2;
                     }
@@ -188,7 +192,7 @@ namespace Kakegurui.Core
             catch (Exception e)
             {
                 LogPool.Logger.LogError(e,"{0} {1}", offset, ByteConvert.ToHex(buffer?.ToArray()));
-                return 0;
+                return -1;
             }
            
         }
@@ -213,6 +217,10 @@ namespace Kakegurui.Core
                 for (int i = 0; i < length; ++i)
                 {
                     var it = ToValue(type.GetElementType(), buffer, offset+size);
+                    if (it.Item2 == -1)
+                    {
+                        return new Tuple<object, int>(null,-1);
+                    }
                     array.SetValue(it.Item1, i);
                     size += it.Item2;
                 }
@@ -228,6 +236,10 @@ namespace Kakegurui.Core
                 for (int i = 0; i < length; ++i)
                 {
                     var it=ToValue(type.GetGenericArguments()[0], buffer, offset + size);
+                    if (it.Item2 == -1)
+                    {
+                        return new Tuple<object, int>(null, -1);
+                    }
                     list.Add(it.Item1);
                     size += it.Item2;
                 }

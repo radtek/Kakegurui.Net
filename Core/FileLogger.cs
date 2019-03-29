@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using Microsoft.Extensions.Logging;
 
@@ -55,6 +56,16 @@ namespace Kakegurui.Core
             _directory = AppConfig.LogDirectory;
             _holdDays = AppConfig.LogHoldDays;
 
+            //创建文件目录和删除超时文件
+            if (Directory.Exists(_directory))
+            {
+                DeleteFile();
+            }
+            else
+            {
+                Directory.CreateDirectory(_directory);
+            }
+
             _fs = new FileStream(
                 Path.Combine(_directory, $"{_name}_{_date:yyMMdd}.log"),
                 FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
@@ -67,14 +78,26 @@ namespace Kakegurui.Core
         /// </summary>
         private void DeleteFile()
         {
-            DateTime date = DateTime.Today.AddDays(-_holdDays);
-            try
+            foreach (string filePath in Directory.GetFiles(_directory))
             {
-                File.Delete(Path.Combine(_directory, string.Format("{0}_{1}.log", "System", date.ToString("yyMMdd"))));
-            }
-            catch (IOException)
-            {
+                string[] datas = Path.GetFileNameWithoutExtension(filePath)
+                    .Split("_", StringSplitOptions.RemoveEmptyEntries);
+                if (datas.Length >= 2)
+                {
+                    DateTime fileDate = DateTime.ParseExact(datas[datas.Length - 1], "yyMMdd",
+                        CultureInfo.CurrentCulture);
+                    if (_name==datas[0]&&(DateTime.Today - fileDate).TotalDays >= _holdDays)
+                    {
+                        try
+                        {
+                            File.Delete(filePath);
+                        }
+                        catch (IOException)
+                        {
 
+                        }
+                    }
+                }
             }
         }
 
@@ -92,7 +115,7 @@ namespace Kakegurui.Core
 
                 _date = DateTime.Today;
                 _fs = new FileStream(
-                    Path.Combine(_directory, string.Format("{0}_{1}.log", _name, _date.ToString("yyMMdd"))),
+                    Path.Combine(_directory, $"{_name}_{_date:yyMMdd}.log"),
                     FileMode.Append,FileAccess.Write,FileShare.ReadWrite);
                 _sw = new StreamWriter(_fs);
             }
