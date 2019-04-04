@@ -25,5 +25,16 @@ namespace Kakegurui.Core
         {
             return Convert.ToInt64((dateTime.ToUniversalTime()-new DateTime(1970,1,1)).TotalMilliseconds);
         }
+
+        /// <summary>
+        /// 获取指定时间的时间戳
+        /// </summary>
+        /// <param name="timeStamp">时间戳</param>
+        /// <returns>时间</returns>
+        public static DateTime ToDateTime(long timeStamp)
+        {
+            DateTime dateTime = new DateTime(1970, 1, 1);
+            return dateTime.AddMilliseconds(timeStamp).ToLocalTime();
+        }
     }
 }

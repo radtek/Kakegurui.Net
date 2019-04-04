@@ -12,25 +12,6 @@ namespace Kakegurui.Protocol
     public class ProtocolMaid:SocketMaid
     {
         /// <summary>
-        /// 构造函数
-        /// </summary>
-        public ProtocolMaid()
-            : this("protocol_maid")
-        {
-
-        }
-
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="name">线程名</param>
-        public ProtocolMaid(string name)
-            :base(name)
-        {
-
-        }
-
-        /// <summary>
         /// 添加tcp监听端口
         /// </summary>
         /// <param name="port">监听端口</param>

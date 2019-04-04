@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
+using System.Timers;
 using Kakegurui.Core;
 using Microsoft.Extensions.Logging;
 
@@ -13,31 +13,24 @@ namespace Kakegurui.Net
     /// <summary>
     /// 套接字通道
     /// </summary>
-    public class SocketMaid:TaskObject
+    public class SocketMaid
     {
         /// <summary>
         /// 套接字集合
         /// </summary>
         protected readonly ConcurrentDictionary<int, SocketChannel> _sockets=new ConcurrentDictionary<int, SocketChannel>();
 
+        private readonly Timer _timer = new Timer();
+
         /// <summary>
         /// 构造函数
         /// </summary>
         public SocketMaid()
-            : this("socket_maid")
         {
-
+            _timer.Interval = AppConfig.MonitorSpan;
+            _timer.Elapsed += ElapsedEventHandler;
         }
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="name">线程名</param>
-        public SocketMaid(string name)
-            :base(name)
-        {
-
-        }
 
         /// <summary>
         /// 客户端连入事件函数
@@ -197,32 +190,42 @@ namespace Kakegurui.Net
             return socket.Key ==0 ? SocketResult.NotFoundSocket : socket.Value.Send(remoteEndPoint, buffer, match, action, null, timeout);
         }
 
-        protected override void ActionCore()
+        /// <summary>
+        /// 开始监控
+        /// </summary>
+        public virtual void Start()
         {
-            int monitorPoll = 0;
-            int monitorSpan = AppConfig.MonitorSpan;
-            while (!IsCancelled())
+            _timer.Start();
+        }
+
+        /// <summary>
+        /// 套接字监控事件函数
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ElapsedEventHandler(object sender, ElapsedEventArgs e)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.Append("socket:\n");
+            foreach (var socket in _sockets)
             {
-                if (monitorPoll % monitorSpan == 0)
-                {
-                    StringBuilder builder = new StringBuilder();
-                    builder.Append("socket:\n");
-                    foreach (var socket in _sockets)
-                    {
-                        builder.Append(socket.Value);
-                        builder.Append("\n");
-                    }
-                    LogPool.Logger.LogTrace(builder.ToString());
-                }
-                ++monitorPoll;
-                Thread.Sleep(TimeSpan.FromSeconds(1));
+                builder.Append(socket.Value);
+                builder.Append("\n");
             }
+            LogPool.Logger.LogTrace(builder.ToString());
+        }
+        
+        /// <summary>
+        /// 停止监控并关闭所有套接字
+        /// </summary>
+        public virtual void Stop()
+        {
+            _timer.Stop();
 
             foreach (var pair in _sockets)
             {
                 pair.Value.Close();
             }
         }
-
     }
 }
