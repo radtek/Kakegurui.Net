@@ -611,11 +611,12 @@ namespace Kakegurui.Net
             {
                 return SocketResult.Disconnection;
             }
-            byte[] temp = buffer.ToArray();
-            if (temp.Length == 0)
+
+            if (buffer == null || buffer.Count == 0)
             {
                 return SocketResult.SendFailed;
             }
+            byte[] temp = buffer.ToArray();
             TransmitSize += Convert.ToUInt32(temp.Length);
             try
             {

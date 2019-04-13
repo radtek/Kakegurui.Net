@@ -84,17 +84,19 @@ namespace Kakegurui.Core
                     .Split("_", StringSplitOptions.RemoveEmptyEntries);
                 if (datas.Length >= 2)
                 {
-                    DateTime fileDate = DateTime.ParseExact(datas[datas.Length - 1], "yyMMdd",
-                        CultureInfo.CurrentCulture);
-                    if (_name==datas[0]&&(DateTime.Today - fileDate).TotalDays >= _holdDays)
+                    if (DateTime.TryParseExact(datas[datas.Length - 1], "yyMMdd", CultureInfo.CurrentCulture,
+                        DateTimeStyles.None, out DateTime fileDate))
                     {
-                        try
+                        if (_name == datas[0] && (DateTime.Today - fileDate).TotalDays >= _holdDays)
                         {
-                            File.Delete(filePath);
-                        }
-                        catch (IOException)
-                        {
+                            try
+                            {
+                                File.Delete(filePath);
+                            }
+                            catch (IOException)
+                            {
 
+                            }
                         }
                     }
                 }

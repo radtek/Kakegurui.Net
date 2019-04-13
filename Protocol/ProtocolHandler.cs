@@ -42,8 +42,7 @@ namespace Kakegurui.Protocol
                 {
       
                     ProtocolHead protocolHead=new ProtocolHead();
-                    ByteFormatter.Deserialize(protocolHead,buffer,1);
-
+                    ByteFormatter.Deserialize(protocolHead, buffer, head + 1);
                     if (lessSize < protocolHead.ContentSize + ProtocolHead.HeadSize)
                     {
                         return new SocketPack

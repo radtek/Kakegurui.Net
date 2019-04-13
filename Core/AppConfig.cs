@@ -32,7 +32,7 @@ namespace Kakegurui.Core
         /// <summary>
         /// 监控日志输出间隔时间(秒)
         /// </summary>
-        public static int MonitorSpan => Config.GetValue("MonitorSpan", 60);
+        public static int MonitorSpan => Config.GetValue("MonitorSpan", 60*1000);
 
         /// <summary>
         /// 文件日志保存目录

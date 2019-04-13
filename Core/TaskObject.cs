@@ -46,15 +46,15 @@ namespace Kakegurui.Core
         /// </summary>
         private void Action()
         {
-            LogPool.Logger.LogInformation($"{Name} start");
+            LogPool.Logger.LogInformation("{0} start",Name);
             try
             {
                 ActionCore();
-                LogPool.Logger.LogInformation($"{Name} stop");
+                LogPool.Logger.LogInformation("{0} stop", Name);
             }
             catch (Exception e)
             {
-                LogPool.Logger.LogError(e, $"{Name} exit");
+                LogPool.Logger.LogInformation(e,"{0} exit", Name);
             }
         }
 

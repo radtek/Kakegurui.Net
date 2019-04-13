@@ -69,7 +69,7 @@ namespace Kakegurui.Protocol
             {
                 Id = protocol.Id,
                 ContentSize = Convert.ToUInt16(content.Count),
-                TimeStamp = TimeStampConvert.ToTimeStamp()
+                TimeStamp = TimeStampConvert.ToUtcTimeStamp()
             };
             List<byte> buffer = ByteFormatter.Serialize(head);
             buffer.AddRange(content);
