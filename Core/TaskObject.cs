@@ -18,7 +18,12 @@ namespace Kakegurui.Core
         /// <summary>
         /// 线程取消功能
         /// </summary>
-        private readonly CancellationTokenSource _cts=new CancellationTokenSource();
+        private readonly CancellationTokenSource _source=new CancellationTokenSource();
+
+        /// <summary>
+        /// 供任务内部使用的取消判断
+        /// </summary>
+        protected CancellationToken _token;
 
         /// <summary>
         /// 构造函数
@@ -27,7 +32,8 @@ namespace Kakegurui.Core
         protected TaskObject(string name)
         {
             Name = name;
-            _task = new Task(Action,_cts.Token);
+            _token = _source.Token;
+            _task = new Task(Action, _token);
             HitPoint=DateTime.Now;
         }
 
@@ -70,7 +76,7 @@ namespace Kakegurui.Core
         protected bool IsCancelled()
         {
             HitPoint =DateTime.Now;
-            return _cts.Token.IsCancellationRequested;
+            return _token.IsCancellationRequested;
         }
 
         /// <summary>
@@ -86,8 +92,8 @@ namespace Kakegurui.Core
         /// </summary>
         public virtual void Stop()
         {
-            _cts.Cancel();
-            _task.Wait();
+            _source.Cancel();
+            _task.Wait(_token);
         }
     }
 }

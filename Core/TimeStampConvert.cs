@@ -18,6 +18,16 @@ namespace Kakegurui.Core
         }
 
         /// <summary>
+        /// 获取指定时间转换为utc时间的时间戳
+        /// </summary>
+        /// <param name="dateTime">时间</param>
+        /// <returns>时间戳</returns>
+        public static long ToUtcTimeStamp(DateTime dateTime)
+        {
+            return Convert.ToInt64((dateTime.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalMilliseconds);
+        }
+
+        /// <summary>
         /// 获取当前utc时间的时间戳
         /// </summary>
         /// <returns>时间戳</returns>

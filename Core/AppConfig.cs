@@ -30,9 +30,9 @@ namespace Kakegurui.Core
         public static int ConnectionSpan => Config.GetValue("ConnectionSpan", 5);
 
         /// <summary>
-        /// 监控日志输出间隔时间(秒)
+        /// 监控日志输出间隔时间(毫秒)
         /// </summary>
-        public static int MonitorSpan => Config.GetValue("MonitorSpan", 60*1000);
+        public static int MonitorSpan => Config.GetValue("MonitorSpan", 60);
 
         /// <summary>
         /// 文件日志保存目录
