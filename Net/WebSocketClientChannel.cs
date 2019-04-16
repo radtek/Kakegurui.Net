@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
@@ -14,7 +15,20 @@ namespace Kakegurui.Net
     /// </summary>
     public class WebSocketReceivedEventArges : EventArgs
     {
+        /// <summary>
+        /// 数据包
+        /// </summary>
         public List<byte> Packet { get; set; }
+
+        /// <summary>
+        /// 服务地址
+        /// </summary>
+        public string Ip { get; set; } 
+
+        /// <summary>
+        /// 服务端口
+        /// </summary>
+        public int Port { get; set; }
     }
 
     /// <summary>
@@ -25,7 +39,7 @@ namespace Kakegurui.Net
         /// <summary>
         /// ws服务url
         /// </summary>
-        private readonly string _url;
+        private readonly Uri _url;
 
         /// <summary>
         /// 构造函数
@@ -34,7 +48,7 @@ namespace Kakegurui.Net
         public WebSocketClientChannel(string url) 
             : base("ws_client")
         {
-            _url = url;
+            _url = new Uri(url);
         }
 
         /// <summary>
@@ -49,7 +63,7 @@ namespace Kakegurui.Net
                 ClientWebSocket webSocket = new ClientWebSocket();
                 try
                 {
-                    Task connectTask = webSocket.ConnectAsync(new Uri(_url), _token);
+                    Task connectTask = webSocket.ConnectAsync(_url, _token);
                     connectTask.Wait(_token);
                 }
                 catch (AggregateException)
@@ -61,7 +75,7 @@ namespace Kakegurui.Net
                 {
                     break;
                 }
-                LogPool.Logger.LogInformation("connect {0}", _url);
+                LogPool.Logger.LogInformation("ws_connect {0}", _url);
                 byte[] buffer = new byte[10 * 1024];
                 List<byte> packet = new List<byte>();
                 while (!_token.IsCancellationRequested)
@@ -74,13 +88,18 @@ namespace Kakegurui.Net
                         packet.AddRange(buffer.Take(receiveTask.Result.Count));
                         if (receiveTask.Result.EndOfMessage)
                         {
-                            WebSocketReceived?.Invoke(this, new WebSocketReceivedEventArges { Packet = packet });
+                            WebSocketReceived?.Invoke(this, new WebSocketReceivedEventArges
+                            {
+                                Packet = packet,
+                                Ip = _url.Host,
+                                Port = _url.Port
+                            });
                             packet.Clear();
                         }
                     }
                     catch (AggregateException)
                     {
-                        LogPool.Logger.LogInformation("close", _url);
+                        LogPool.Logger.LogInformation("ws_close", _url);
                         break;
                     }
                     catch (OperationCanceledException)

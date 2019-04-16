@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Kakegurui.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Net
 {
@@ -27,11 +28,12 @@ namespace Kakegurui.Net
         /// <summary>
         /// 构造函数
         /// </summary>
-        /// <param name="url">服务端监听的url</param>
-        public WebSockerServerChannel(string url)
+        /// <param name="port">监听端口</param>
+        /// <param name="url">监听url</param>
+        public WebSockerServerChannel(int port,string url)
             : base("websocket_server")
         {
-            _url = url;
+            _url = $"http://+:{port}/{url}";
         }
 
         /// <summary>
@@ -50,16 +52,29 @@ namespace Kakegurui.Net
         {
             HttpListener listener = new HttpListener();
             listener.Prefixes.Add(_url);
+            LogPool.Logger.LogInformation("ws_listen {0}",_url);
             listener.Start();
-
             while (!IsCancelled())
             {
                 var context = listener.GetContext();
                 Task<HttpListenerWebSocketContext> wsContext = context.AcceptWebSocketAsync(null);
-
                 wsContext.Wait(_token);
                 WebSocket client = wsContext.Result.WebSocket;
                 _clients.TryAdd(client, null);
+                async Task Function()
+                {
+                    var buffer = new byte[0];
+                    WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    while (!result.CloseStatus.HasValue)
+                    {
+                        result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    }
+                    await client.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                    LogPool.Logger.LogInformation("ws_close {0}", _url);
+
+                    _clients.TryRemove(client, out object obj);
+                }
+                Task.Run(Function);
             }
             foreach (KeyValuePair<WebSocket, object> pair in _clients)
             {
@@ -68,6 +83,5 @@ namespace Kakegurui.Net
             }
             listener.Stop();
         }
-
     }
 }
