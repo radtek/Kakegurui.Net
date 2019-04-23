@@ -68,7 +68,6 @@ namespace Kakegurui.Net
                 }
                 catch (AggregateException)
                 {
-                    Thread.Sleep(TimeSpan.FromSeconds(AppConfig.ConnectionSpan));
                     continue;
                 }
                 catch (OperationCanceledException)
