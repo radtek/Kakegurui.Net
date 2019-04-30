@@ -103,15 +103,20 @@ namespace Kakegurui.Core
             }
         }
 
+        public void Close()
+        {
+            if (_sw != null && _fs != null)
+            {
+                _sw.Close();
+                _fs.Close();
+            }
+        }
+
         protected override void LogCore(string log)
         {
             if (_date != DateTime.Today)
             {
-                if (_sw != null && _fs != null)
-                {
-                    _sw.Close();
-                    _fs.Close();
-                }
+                Close();
 
                 DeleteFile();
 

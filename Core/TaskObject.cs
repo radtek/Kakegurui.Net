@@ -93,7 +93,13 @@ namespace Kakegurui.Core
         public virtual void Stop()
         {
             _source.Cancel();
-            _task.Wait(_token);
+            try
+            {
+                _task.Wait(_token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 }
