@@ -45,6 +45,11 @@ namespace Kakegurui.Core
         public static int LogHoldDays => Config.GetValue("Log:HoldDays",0);
 
         /// <summary>
+        /// 文件日志保存天数
+        /// </summary>
+        public static int QueueMaxCount => Config.GetValue("Log:QueueMaxCount", 10);
+
+        /// <summary>
         /// 从配置文件读取日志集合
         /// </summary>
         /// <returns></returns>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
@@ -8,6 +9,16 @@ namespace Kakegurui.Core
     /// </summary>
     public static class LogPool
     {
+        /// <summary>
+        /// 警告日志队列
+        /// </summary>
+        private static readonly QueueLogger _warningLogger = new QueueLogger(LogLevel.Warning);
+
+        /// <summary>
+        /// 错误日志队列
+        /// </summary>
+        private static readonly QueueLogger _errorLogger = new QueueLogger(LogLevel.Error);
+        
         /// <summary>
         /// 日志接口
         /// </summary>
@@ -19,6 +30,8 @@ namespace Kakegurui.Core
             {
                 factory.AddProvider(loggerProvider);
             }
+            factory.AddProvider(_warningLogger);
+            factory.AddProvider(_errorLogger);
             return factory.CreateLogger("log");
         });
 
@@ -27,5 +40,14 @@ namespace Kakegurui.Core
         /// </summary>
         public static ILogger Logger => _logger.Value;
 
+        /// <summary>
+        /// 警告日志队列
+        /// </summary>
+        public static ConcurrentQueue<string> Warnings => _warningLogger.Queue;
+
+        /// <summary>
+        /// 错误日志队列
+        /// </summary>
+        public static ConcurrentQueue<string> Errors => _errorLogger.Queue;
     }
 }

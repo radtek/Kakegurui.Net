@@ -20,6 +20,9 @@ namespace Kakegurui.Net
         /// </summary>
         protected readonly ConcurrentDictionary<int, SocketChannel> _sockets=new ConcurrentDictionary<int, SocketChannel>();
 
+        /// <summary>
+        /// 定时器
+        /// </summary>
         private readonly Timer _timer = new Timer();
 
         /// <summary>

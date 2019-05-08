@@ -10,6 +10,11 @@ namespace Kakegurui.Core
     public abstract class Logger:ILoggerProvider,ILogger
     {
         /// <summary>
+        /// 同步锁
+        /// </summary>
+        private readonly object _lockObj = new object();
+
+        /// <summary>
         /// 日志筛选最低级别
         /// </summary>
         private readonly LogLevel _minLevel;
@@ -51,7 +56,7 @@ namespace Kakegurui.Core
         {
             if (IsEnabled(logLevel))
             {
-                lock (this)
+                lock (_lockObj)
                 {
                     try
                     {

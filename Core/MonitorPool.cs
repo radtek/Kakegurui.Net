@@ -112,13 +112,39 @@ namespace Kakegurui.Core
         }
     }
 
+    /// <summary>
+    /// 监控状态
+    /// </summary>
     public class MonitorStatus
     {
-        public double Cpu { get; set; }
-        public double Memory { get; set; }
+        /// <summary>
+        /// cpu
+        /// </summary>
+        public string Cpu { get; set; }
+        /// <summary>
+        /// 内存(mb)
+        /// </summary>
+        public string Memory { get; set; }
+        /// <summary>
+        /// 线程数
+        /// </summary>
         public int ThreadCount { get; set; }
+        /// <summary>
+        /// 监控信息集合
+        /// </summary>
         public List<string> Monitors { get; set; }
+        /// <summary>
+        /// 定时任务集合
+        /// </summary>
         public List<string> FixedJobs { get; set; }
+        /// <summary>
+        /// 警告日志集合
+        /// </summary>
+        public List<string> WarningLogs { get; set; }
+        /// <summary>
+        /// 错误日志集合
+        /// </summary>
+        public List<string> ErrorLogs { get; set; }
     }
     /// <summary>
     /// 监控池
@@ -254,12 +280,13 @@ namespace Kakegurui.Core
         {
             Process process = Process.GetCurrentProcess();
             TimeSpan currentCpuTime = process.TotalProcessorTime;
-            _lastStatus.Cpu = (currentCpuTime - _lastCpuTime).TotalMilliseconds / _timer.Interval / Environment.ProcessorCount * 100;
+            _lastStatus.Cpu =  $"{(currentCpuTime - _lastCpuTime).TotalMilliseconds / _timer.Interval / Environment.ProcessorCount * 100:N2}";
             _lastCpuTime = currentCpuTime;
-            _lastStatus.Memory = process.WorkingSet64 / 1024.0 / 1024.0;
+            _lastStatus.Memory = $"{process.WorkingSet64 / 1024.0 / 1024.0:N2}";
             _lastStatus.ThreadCount = process.Threads.Count;
             StringBuilder builder = new StringBuilder();
-            builder.AppendLine($"cpu:{_lastStatus.Cpu:N2}% memory:{_lastStatus.Memory:N2}mb threads:{_lastStatus.ThreadCount}");
+            builder.AppendLine($"cpu:{_lastStatus.Cpu}% memory:{_lastStatus.Memory}mb threads:{_lastStatus.ThreadCount}");
+
             _lastStatus.Monitors = new List<string>();
             foreach (var pair in _pollJbos)
             {
@@ -273,6 +300,11 @@ namespace Kakegurui.Core
             {
                 _lastStatus.FixedJobs.Add($"{pair.Value.Name} {pair.Value.Level} {pair.Value.Time.Add(pair.Value.Span):yyyy-MM-dd HH:mm:ss}");
             }
+
+            _lastStatus.WarningLogs = new List<string>(LogPool.Warnings);
+
+            _lastStatus.ErrorLogs = new List<string>(LogPool.Errors);
+
             LogPool.Logger.LogTrace(builder.ToString());
         }
 
