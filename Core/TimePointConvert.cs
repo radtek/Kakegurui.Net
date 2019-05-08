@@ -18,7 +18,7 @@ namespace Kakegurui.Core
     /// <summary>
     /// 时间处理类
     /// </summary>
-    public class TimePointConvert
+    public static class TimePointConvert
     {
         /// <summary>
         /// 获取当前时间点
