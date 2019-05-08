@@ -41,7 +41,7 @@ namespace Kakegurui.Core
         public static List<byte> Serialize(object obj)
         {
             List<byte> buffer=new List<byte>();
-            foreach (var property in obj.GetType().GetProperties().Where(p => p.GetCustomAttributesData().Count != 0).OrderBy(p => p.GetCustomAttributesData()[0].ConstructorArguments[0].Value))
+            foreach (var property in obj.GetType().GetProperties().Where(p => p.GetCustomAttributes(typeof(SerializeIndexAttribute), false).Length != 0).OrderBy(p => ((SerializeIndexAttribute)p.GetCustomAttributes(typeof(SerializeIndexAttribute), false)[0]).Index))
             {
                 ToBytes(property.PropertyType,property.GetValue(obj), buffer);
             }
@@ -174,7 +174,7 @@ namespace Kakegurui.Core
             try
             {
                 int size = 0;
-                foreach (var property in value.GetType().GetProperties().Where(p => p.GetCustomAttributesData().Count != 0).OrderBy(p1 => p1.GetCustomAttributesData()[0].ConstructorArguments[0].Value))
+                foreach (var property in value.GetType().GetProperties().Where(p => p.GetCustomAttributes(typeof(SerializeIndexAttribute), false).Length != 0).OrderBy(p => ((SerializeIndexAttribute)p.GetCustomAttributes(typeof(SerializeIndexAttribute), false)[0]).Index))
                 {
                     if (property.CanWrite)
                     {

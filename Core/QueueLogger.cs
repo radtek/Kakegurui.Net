@@ -32,7 +32,7 @@ namespace Kakegurui.Core
         {
             if (Queue.Count >= _maxCount)
             {
-                Queue.TryDequeue(out string );
+                Queue.TryDequeue(out string str);
             }
             Queue.Enqueue(log);
         }
