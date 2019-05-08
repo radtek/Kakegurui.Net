@@ -286,7 +286,7 @@ namespace Kakegurui.Core
             _lastStatus.ThreadCount = process.Threads.Count;
             StringBuilder builder = new StringBuilder();
             builder.AppendLine($"cpu:{_lastStatus.Cpu}% memory:{_lastStatus.Memory}mb threads:{_lastStatus.ThreadCount}");
-
+         
             _lastStatus.Monitors = new List<string>();
             foreach (var pair in _pollJbos)
             {
