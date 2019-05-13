@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
@@ -41,6 +42,16 @@ namespace Kakegurui.Net
         private readonly Uri _url;
 
         /// <summary>
+        /// ws服务url
+        /// </summary>
+        public Uri Url => _url;
+
+        /// <summary>
+        /// 是否连接到ws服务
+        /// </summary>
+        public bool Connected { get; private set; }
+
+        /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="url">ws服务url</param>
@@ -59,6 +70,7 @@ namespace Kakegurui.Net
         {
             while (!IsCancelled())
             {
+                Connected = false;
                 ClientWebSocket webSocket = new ClientWebSocket();
                 try
                 {
@@ -74,6 +86,7 @@ namespace Kakegurui.Net
                     break;
                 }
                 LogPool.Logger.LogInformation("ws_connect {0}", _url);
+                Connected = true;
                 byte[] buffer = new byte[10 * 1024];
                 List<byte> packet = new List<byte>();
                 while (!_token.IsCancellationRequested)
