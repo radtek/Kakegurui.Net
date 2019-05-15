@@ -110,7 +110,7 @@ namespace Kakegurui.Net
                     }
                     catch (AggregateException)
                     {
-                        LogPool.Logger.LogInformation("ws_close", _url);
+                        LogPool.Logger.LogInformation("ws_shutdown {0}", _url);
                         break;
                     }
                     catch (OperationCanceledException)

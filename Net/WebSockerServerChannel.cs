@@ -44,7 +44,13 @@ namespace Kakegurui.Net
         {
             foreach (var client in _clients)
             {
-                client.Key.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                try
+                {
+                    client.Key.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                catch
+                {
+                } 
             }
         }
 
@@ -63,6 +69,7 @@ namespace Kakegurui.Net
                 _clients.TryAdd(client, null);
                 async Task Function()
                 {
+                    LogPool.Logger.LogInformation("ws_accept {0}", _url);
                     var buffer = new byte[0];
                     WebSocketReceiveResult result = await client.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                     while (!result.CloseStatus.HasValue)

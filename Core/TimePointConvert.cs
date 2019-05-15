@@ -7,8 +7,10 @@ namespace Kakegurui.Core
     /// </summary>
     public enum DateTimeLevel
     {
+        None,
         Minute,
-        Second,
+        FiveMinutes,
+        FifteenMinutes,
         Hour,
         Day,
         Month,
@@ -38,13 +40,19 @@ namespace Kakegurui.Core
         /// <returns>当前时间点</returns>
         public static DateTime CurrentTimePoint(DateTimeLevel level,DateTime baseTimePoint)
         {
-            if (level == DateTimeLevel.Second)
-            {
-                return new DateTime(baseTimePoint.Year, baseTimePoint.Month, baseTimePoint.Day, baseTimePoint.Hour, baseTimePoint.Minute, baseTimePoint.Second);
-            }
-            else if (level == DateTimeLevel.Minute)
+            if (level == DateTimeLevel.Minute)
             {
                 return new DateTime(baseTimePoint.Year, baseTimePoint.Month, baseTimePoint.Day, baseTimePoint.Hour, baseTimePoint.Minute, 0);
+            }
+            else if (level == DateTimeLevel.FiveMinutes)
+            {
+                int minutes = baseTimePoint.Minute / 5 * 5;
+                return new DateTime(baseTimePoint.Year, baseTimePoint.Month, baseTimePoint.Day, baseTimePoint.Hour, minutes, 0);
+            }
+            else if (level == DateTimeLevel.FifteenMinutes)
+            {
+                int minutes = baseTimePoint.Minute / 15 * 15;
+                return new DateTime(baseTimePoint.Year, baseTimePoint.Month, baseTimePoint.Day, baseTimePoint.Hour, minutes, 0);
             }
             else if (level == DateTimeLevel.Hour)
             {
@@ -52,15 +60,19 @@ namespace Kakegurui.Core
             }
             else if (level == DateTimeLevel.Day)
             {
-                return new DateTime(baseTimePoint.Year, baseTimePoint.Month, baseTimePoint.Day);
+                return baseTimePoint.Date;
             }
             else if (level == DateTimeLevel.Month)
             {
                 return new DateTime(baseTimePoint.Year, baseTimePoint.Month, 1);
             }
-            else
+            else if(level==DateTimeLevel.Year)
             {
                 return new DateTime(baseTimePoint.Year, 1, 1);
+            }
+            else
+            {
+                return DateTime.MinValue;
             }
         }
 
@@ -72,13 +84,17 @@ namespace Kakegurui.Core
         /// <returns>下一个时间点</returns>
         public static DateTime NextTimePoint(DateTimeLevel level, DateTime baseTimePoint)
         {
-            if (level == DateTimeLevel.Second)
-            {
-                return baseTimePoint.AddSeconds(1);
-            }
-            else if (level == DateTimeLevel.Minute)
+            if (level == DateTimeLevel.Minute)
             {
                 return baseTimePoint.AddMinutes(1);
+            }
+            else if (level == DateTimeLevel.FiveMinutes)
+            {
+                return baseTimePoint.AddMinutes(5);
+            }
+            else if (level == DateTimeLevel.FifteenMinutes)
+            {
+                return baseTimePoint.AddMinutes(15);
             }
             else if (level == DateTimeLevel.Hour)
             {
@@ -92,9 +108,48 @@ namespace Kakegurui.Core
             {
                 return baseTimePoint.AddMonths(1);
             }
-            else
+            else if(level==DateTimeLevel.Year)
             {
                 return baseTimePoint.AddYears(1);
+            }
+            else
+            {
+                return DateTime.MinValue;
+            }
+        }
+
+        /// <summary>
+        /// 获取时间格式
+        /// </summary>
+        /// <param name="level">时间级别</param>
+        /// <returns>时间格式字符串</returns>
+        public static string TimeFormat(DateTimeLevel level)
+        {
+            if (level == DateTimeLevel.Minute
+                || level == DateTimeLevel.FiveMinutes
+                || level == DateTimeLevel.FifteenMinutes)
+            {
+                return "yyyy-MM-dd HH:mm";
+            }
+            else if (level == DateTimeLevel.Hour)
+            {
+                return "yyyy-MM-dd HH";
+            }
+            else if (level == DateTimeLevel.Day)
+            {
+                return "yyyy-MM-dd";
+            }
+            else if (level == DateTimeLevel.Month)
+            {
+                return "yyyy-MM";
+            }
+            else if(level==DateTimeLevel.Year)
+            {
+                return "yyyy";
+            }
+            else
+            {
+                return null;
             }
         }
     }
