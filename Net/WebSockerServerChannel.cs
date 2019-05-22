@@ -40,16 +40,21 @@ namespace Kakegurui.Net
         /// 向所有客户端广播数据
         /// </summary>
         /// <param name="buffer">数据字节流</param>
-        public void Broadcast(byte[] buffer)
+        public async void Broadcast(byte[] buffer)
         {
             foreach (var client in _clients)
             {
                 try
                 {
-                    client.Key.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                    if (client.Key.State == WebSocketState.Open)
+                    {
+                        await client.Key.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
                 }
-                catch
+                catch(Exception ex)
                 {
+                    _clients.TryRemove(client.Key, out object obj);
+                    LogPool.Logger.LogError(ex, "ws_broadcast");
                 } 
             }
         }
