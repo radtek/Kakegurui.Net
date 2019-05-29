@@ -30,7 +30,7 @@ namespace Kakegurui.Net
         /// </summary>
         public SocketMaid()
         {
-            _timer.Interval = AppConfig.MonitorSpan*1000;
+            _timer.Interval = AppFileConfig.MonitorSpan.TotalMilliseconds;
             _timer.Elapsed += ElapsedEventHandler;
         }
 

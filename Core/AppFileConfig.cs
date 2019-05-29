@@ -9,30 +9,31 @@ namespace Kakegurui.Core
     /// <summary>
     /// 当前程序配置文件读写类
     /// </summary>
-    public static class AppConfig
+    public static class AppFileConfig
     {
-        /// <summary>
-        /// 日志接口
-        /// </summary>
-        private static readonly Lazy<IConfigurationRoot> _config = new Lazy<IConfigurationRoot>(() => new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", true, true)
-            .Build());
-
         /// <summary>
         /// 配置接口
         /// </summary>
-        public static IConfigurationRoot Config => _config.Value;
+        public static IConfigurationRoot Config { get; } = 
+            new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", true, true)
+            .Build();
 
         /// <summary>
         /// 重连间隔时间(秒)
         /// </summary>
-        public static int ConnectionSpan => Config.GetValue("ConnectionSpan", 5);
+        public static TimeSpan ConnectionSpan => TimeSpan.FromSeconds(Config.GetValue("ConnectionSpan", 10));
 
         /// <summary>
-        /// 监控日志输出间隔时间(毫秒)
+        /// 监控日志输出间隔时间(秒)
         /// </summary>
-        public static int MonitorSpan => Config.GetValue("MonitorSpan", 60);
+        public static TimeSpan MonitorSpan => TimeSpan.FromSeconds(Config.GetValue("MonitorSpan", 60));
+
+        /// <summary>
+        /// 文件日志保存目录
+        /// </summary>
+        public static bool LogDebug => Config.GetValue("Log:Debug",false);
 
         /// <summary>
         /// 文件日志保存目录
@@ -45,9 +46,20 @@ namespace Kakegurui.Core
         public static int LogHoldDays => Config.GetValue("Log:HoldDays",0);
 
         /// <summary>
-        /// 文件日志保存天数
+        /// 日志队列保存数量
         /// </summary>
-        public static int QueueMaxCount => Config.GetValue("Log:QueueMaxCount", 10);
+        public static int LogQueueMaxCount => Config.GetValue("Log:QueueMaxCount", 10);
+
+        /// <summary>
+        /// 读取日志级别
+        /// </summary>
+        /// <param name="key">日志配置文件中的配置顺序</param>
+        /// <returns>读取成功返回日志级别，否则返回Critical(0)</returns>
+        private static LogLevel GetLogLevel(string key)
+        {
+            string level = Config.GetValue<string>(key);
+            return Enum.TryParse(level, out LogLevel l) ? l : LogLevel.None;
+        }
 
         /// <summary>
         /// 从配置文件读取日志集合
@@ -98,14 +110,12 @@ namespace Kakegurui.Core
         }
 
         /// <summary>
-        /// 读取日志级别
+        /// 从配置文件读取asp.net日志
         /// </summary>
-        /// <param name="key">日志配置文件中的配置顺序</param>
-        /// <returns>读取成功返回日志级别，否则返回Critical(0)</returns>
-        public static LogLevel GetLogLevel(string key)
-        {
-            string level = Config.GetValue<string>(key);
-            return Enum.TryParse(level, out LogLevel l) ? l : LogLevel.None;
-        }
+        public static ILoggerProvider WebLoggers { get; }= new FileLogger(
+            GetLogLevel("Log:WebLogger:MinLevel"),
+            GetLogLevel("Log:WebLogger:MaxLevel"),
+            Config.GetValue<string>("Log:WebLogger:Name"));
+
     }
 }

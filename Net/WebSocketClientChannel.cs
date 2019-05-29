@@ -68,54 +68,61 @@ namespace Kakegurui.Net
 
         protected override void ActionCore()
         {
+
             while (!IsCancelled())
             {
                 Connected = false;
-                ClientWebSocket webSocket = new ClientWebSocket();
-                try
-                {
-                    Task connectTask = webSocket.ConnectAsync(_url, _token);
-                    connectTask.Wait(_token);
-                }
-                catch (AggregateException)
-                {
-                    continue;
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                LogPool.Logger.LogInformation("ws_connect {0}", _url);
-                Connected = true;
-                byte[] buffer = new byte[10 * 1024];
-                List<byte> packet = new List<byte>();
-                while (!_token.IsCancellationRequested)
+                using (ClientWebSocket webSocket = new ClientWebSocket())
                 {
                     try
                     {
-                        Task<WebSocketReceiveResult> receiveTask =
-                            webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                        receiveTask.Wait(_token);
-                        packet.AddRange(buffer.Take(receiveTask.Result.Count));
-                        if (receiveTask.Result.EndOfMessage)
-                        {
-                            WebSocketReceived?.Invoke(this, new WebSocketReceivedEventArges
-                            {
-                                Packet = packet,
-                                Ip = _url.Host,
-                                Port = _url.Port
-                            });
-                            packet.Clear();
-                        }
+                        Task connectTask = webSocket.ConnectAsync(_url, _token);
+                        connectTask.Wait(_token);
                     }
                     catch (AggregateException)
                     {
-                        LogPool.Logger.LogInformation("ws_shutdown {0}", _url);
-                        break;
+                        Thread.Sleep(AppFileConfig.ConnectionSpan);
+                        continue;
                     }
                     catch (OperationCanceledException)
                     {
+                        webSocket.Abort();
                         break;
+                    }
+
+                    LogPool.Logger.LogInformation("ws_connect {0}", _url);
+                    Connected = true;
+                    byte[] buffer = new byte[10 * 1024];
+                    List<byte> packet = new List<byte>();
+                    while (!IsCancelled())
+                    {
+                        try
+                        {
+                            Task<WebSocketReceiveResult> receiveTask =
+                                webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), _token);
+                            receiveTask.Wait(_token);
+                            packet.AddRange(buffer.Take(receiveTask.Result.Count));
+                            if (receiveTask.Result.EndOfMessage)
+                            {
+                                WebSocketReceived?.Invoke(this, new WebSocketReceivedEventArges
+                                {
+                                    Packet = packet,
+                                    Ip = _url.Host,
+                                    Port = _url.Port
+                                });
+                                packet.Clear();
+                            }
+                        }
+                        catch (AggregateException)
+                        {
+                            LogPool.Logger.LogInformation("ws_shutdown {0}", _url);
+                            break;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            webSocket.Abort();
+                            break;
+                        }
                     }
                 }
             }

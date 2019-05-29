@@ -154,11 +154,6 @@ namespace Kakegurui.Net
         private bool _closed;
 
         /// <summary>
-        /// 重连的间隔时间
-        /// </summary>
-        private readonly TimeSpan _connectionSpan;
-
-        /// <summary>
         /// 残包
         /// </summary>
         private readonly List<byte> _residueBuffer = new List<byte>();
@@ -315,7 +310,6 @@ namespace Kakegurui.Net
             }
             else if(type==SocketType.Connect)
             {
-                _connectionSpan = TimeSpan.FromSeconds(AppConfig.ConnectionSpan);
                 RemoteEndPoint = remoteEndPoint;
                 Tag = remoteEndPoint.ToString();
                 LogPool.Logger.LogInformation("{0} {1}", "connect", remoteEndPoint.ToString());
@@ -431,7 +425,7 @@ namespace Kakegurui.Net
         {
             if (e.ConnectSocket == null)
             {
-                Thread.Sleep(_connectionSpan);
+                Thread.Sleep(AppFileConfig.ConnectionSpan);
                 ConnectAsync((IPEndPoint)e.RemoteEndPoint);
             }
             else
@@ -517,7 +511,7 @@ namespace Kakegurui.Net
                         //在和tomcat中对接的时候发现在tomcat启动和
                         //结束的时候，服务会释放连入的连接
                         //但是此时服务还可以连接，就造成了短时间内的多次连接
-                        Thread.Sleep(_connectionSpan);
+                        Thread.Sleep(AppFileConfig.ConnectionSpan);
                         ConnectAsync(RemoteEndPoint);
                     }
                 }

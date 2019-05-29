@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -17,11 +16,11 @@ namespace Kakegurui.Core
     }
 
     /// <summary>
-    /// 轮询监控任务
+    /// 可以获取状态的任务
     /// </summary>
-    public interface IPollJob
+    public interface IStatusJob
     {
-        string GetMonitor();
+        MonitorStatusItem GetStatus();
     }
 
     /// <summary>
@@ -112,6 +111,12 @@ namespace Kakegurui.Core
         }
     }
 
+    public class MonitorStatusItem
+    {
+        public string Name { get; set; }
+        public string Message { get; set; }
+    }
+
     /// <summary>
     /// 监控状态
     /// </summary>
@@ -132,7 +137,7 @@ namespace Kakegurui.Core
         /// <summary>
         /// 监控信息集合
         /// </summary>
-        public List<string> Monitors { get; set; }
+        public List<MonitorStatusItem> Status { get; set; }
         /// <summary>
         /// 定时任务集合
         /// </summary>
@@ -164,7 +169,7 @@ namespace Kakegurui.Core
         /// <summary>
         /// 轮询监控任务集合
         /// </summary>
-        private static readonly ConcurrentDictionary<IPollJob,object> _pollJbos = new ConcurrentDictionary<IPollJob, object>();
+        private static readonly ConcurrentDictionary<IStatusJob,object> _pollJbos = new ConcurrentDictionary<IStatusJob, object>();
 
         /// <summary>
         /// 可重启的任务集合
@@ -179,15 +184,14 @@ namespace Kakegurui.Core
         /// <summary>
         /// 上一次的状态
         /// </summary>
-        private static readonly MonitorStatus _lastStatus;
+        private static string _cpu;
 
         /// <summary>
         /// 构造函数
         /// </summary>
         static MonitorPool()
         {
-            _lastStatus=new MonitorStatus();
-            _timer.Interval = AppConfig.MonitorSpan * 1000;
+            _timer.Interval = 1000;
             _timer.Elapsed += ElapsedEventHandler;
             _timer.Start();
             _fixedJobTask.Start();
@@ -235,19 +239,19 @@ namespace Kakegurui.Core
         /// <summary>
         /// 添加轮询监控任务
         /// </summary>
-        /// <param name="pollJob">轮询监控任务</param>
-        public static void AddPollJob(IPollJob pollJob)
+        /// <param name="statusJob">轮询监控任务</param>
+        public static void AddPollJob(IStatusJob statusJob)
         {
-            _pollJbos.TryAdd(pollJob,null);
+            _pollJbos.TryAdd(statusJob,null);
         }
 
         /// <summary>
         /// 移除轮询监控任务
         /// </summary>
-        /// <param name="pollJob">轮询监控任务</param>
-        public static void RemovePollJob(IPollJob pollJob)
+        /// <param name="statusJob">轮询监控任务</param>
+        public static void RemovePollJob(IStatusJob statusJob)
         {
-            _pollJbos.TryRemove(pollJob, out object obj);
+            _pollJbos.TryRemove(statusJob, out object obj);
         }
 
         /// <summary>
@@ -256,8 +260,26 @@ namespace Kakegurui.Core
         /// <returns>状态描述</returns>
         public static MonitorStatus GetStatus()
         {
-            ElapsedEventHandler(null, null);
-            return _lastStatus;
+            Process process = Process.GetCurrentProcess();
+            MonitorStatus status = new MonitorStatus
+            {
+                Cpu = _cpu,
+                Memory = $"{process.WorkingSet64 / 1024.0 / 1024.0:N2}",
+                ThreadCount = process.Threads.Count,
+                Status = new List<MonitorStatusItem>()
+            };
+            foreach (var pair in _pollJbos)
+            {
+                status.Status.Add(pair.Key.GetStatus());
+            }
+            status.FixedJobs = new List<string>();
+            foreach (var pair in _fixedJobTask.FixedJobs)
+            {
+                status.FixedJobs.Add($"{pair.Value.Name} {pair.Value.Level} {pair.Value.Time.Add(pair.Value.Span):yyyy-MM-dd HH:mm:ss}");
+            }
+            status.WarningLogs = new List<string>(LogPool.Warnings);
+            status.ErrorLogs = new List<string>(LogPool.Errors);
+            return status;
         }
 
         /// <summary>
@@ -280,33 +302,8 @@ namespace Kakegurui.Core
         {
             Process process = Process.GetCurrentProcess();
             TimeSpan currentCpuTime = process.TotalProcessorTime;
-            _lastStatus.Cpu =  $"{(currentCpuTime - _lastCpuTime).TotalMilliseconds / _timer.Interval / Environment.ProcessorCount * 100:N2}";
+            _cpu =  $"{(currentCpuTime - _lastCpuTime).TotalMilliseconds / _timer.Interval / Environment.ProcessorCount * 100:N2}";
             _lastCpuTime = currentCpuTime;
-            _lastStatus.Memory = $"{process.WorkingSet64 / 1024.0 / 1024.0:N2}";
-            _lastStatus.ThreadCount = process.Threads.Count;
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine($"cpu:{_lastStatus.Cpu}% memory:{_lastStatus.Memory}mb threads:{_lastStatus.ThreadCount}");
-         
-            _lastStatus.Monitors = new List<string>();
-            foreach (var pair in _pollJbos)
-            {
-                string monitor = pair.Key.GetMonitor();
-                _lastStatus.Monitors.Add(monitor);
-                builder.AppendLine(monitor);
-            }
-
-            _lastStatus.FixedJobs = new List<string>();
-            foreach (var pair in _fixedJobTask.FixedJobs)
-            {
-                _lastStatus.FixedJobs.Add($"{pair.Value.Name} {pair.Value.Level} {pair.Value.Time.Add(pair.Value.Span):yyyy-MM-dd HH:mm:ss}");
-            }
-
-            _lastStatus.WarningLogs = new List<string>(LogPool.Warnings);
-
-            _lastStatus.ErrorLogs = new List<string>(LogPool.Errors);
-
-            LogPool.Logger.LogTrace(builder.ToString());
         }
-
     }
 }
