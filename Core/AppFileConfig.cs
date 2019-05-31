@@ -11,15 +11,23 @@ namespace Kakegurui.Core
     /// </summary>
     public static class AppFileConfig
     {
+        private static string _directoryNameName = AppDomain.CurrentDomain.BaseDirectory;
+        private static string _fileName= "appsettings.json";
+        private static IConfigurationRoot _config;
+
+        public static void InitFilePath(string filePath)
+        {
+            _directoryNameName = Path.GetDirectoryName(filePath);
+            _fileName = Path.GetFileName(filePath);
+        }
+
         /// <summary>
         /// 配置接口
         /// </summary>
-        public static IConfigurationRoot Config { get; } = 
-            new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", true, true)
-            .Build();
-
+        public static IConfigurationRoot Config => _config ?? (_config = new ConfigurationBuilder()
+                                                       .SetBasePath(_directoryNameName)
+                                                       .AddJsonFile(_fileName, true, true)
+                                                       .Build());
         /// <summary>
         /// 重连间隔时间(秒)
         /// </summary>
@@ -112,10 +120,9 @@ namespace Kakegurui.Core
         /// <summary>
         /// 从配置文件读取asp.net日志
         /// </summary>
-        public static ILoggerProvider WebLoggers { get; }= new FileLogger(
+        public static ILoggerProvider WebLoggers => new FileLogger(
             GetLogLevel("Log:WebLogger:MinLevel"),
             GetLogLevel("Log:WebLogger:MaxLevel"),
             Config.GetValue<string>("Log:WebLogger:Name"));
-
     }
 }
