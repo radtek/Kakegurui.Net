@@ -16,6 +16,11 @@ namespace Kakegurui.Net
     public class SocketMaid
     {
         /// <summary>
+        /// 监控间隔时间(毫秒)
+        /// </summary>
+        private const int MonitorSpan = 60 * 1000;
+
+        /// <summary>
         /// 套接字集合
         /// </summary>
         protected readonly ConcurrentDictionary<int, SocketChannel> _sockets=new ConcurrentDictionary<int, SocketChannel>();
@@ -30,7 +35,7 @@ namespace Kakegurui.Net
         /// </summary>
         public SocketMaid()
         {
-            _timer.Interval = AppFileConfig.MonitorSpan.TotalMilliseconds;
+            _timer.Interval = MonitorSpan;
             _timer.Elapsed += ElapsedEventHandler;
         }
 

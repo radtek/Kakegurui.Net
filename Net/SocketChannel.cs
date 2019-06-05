@@ -139,6 +139,11 @@ namespace Kakegurui.Net
         private const int BufferLength = 65536;
 
         /// <summary>
+        /// 客户端断线重连时间(毫秒)
+        /// </summary>
+        private const int ConnectionSpan = 10*1000;
+
+        /// <summary>
         /// 日志接口
         /// </summary>
         private ILogger _logger;
@@ -425,7 +430,7 @@ namespace Kakegurui.Net
         {
             if (e.ConnectSocket == null)
             {
-                Thread.Sleep(AppFileConfig.ConnectionSpan);
+                Thread.Sleep(ConnectionSpan);
                 ConnectAsync((IPEndPoint)e.RemoteEndPoint);
             }
             else
@@ -511,7 +516,7 @@ namespace Kakegurui.Net
                         //在和tomcat中对接的时候发现在tomcat启动和
                         //结束的时候，服务会释放连入的连接
                         //但是此时服务还可以连接，就造成了短时间内的多次连接
-                        Thread.Sleep(AppFileConfig.ConnectionSpan);
+                        Thread.Sleep(ConnectionSpan);
                         ConnectAsync(RemoteEndPoint);
                     }
                 }

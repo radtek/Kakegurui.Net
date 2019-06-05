@@ -53,8 +53,8 @@ namespace Kakegurui.Core
             _date= DateTime.Today;
 
             //读取文件日志参数
-            _directory = AppFileConfig.LogDirectory;
-            _holdDays = AppFileConfig.LogHoldDays;
+            _directory = LogConfig.LogDirectory;
+            _holdDays = LogConfig.LogHoldDays;
 
             //创建文件目录和删除超时文件
             if (Directory.Exists(_directory))

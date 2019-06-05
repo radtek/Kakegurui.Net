@@ -54,7 +54,7 @@ namespace Kakegurui.Core
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            if (logLevel == LogLevel.Debug && !AppFileConfig.LogDebug)
+            if (logLevel == LogLevel.Debug && !LogConfig.LogDebug)
             {
                 return;
             }

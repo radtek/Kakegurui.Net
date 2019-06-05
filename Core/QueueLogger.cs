@@ -25,7 +25,7 @@ namespace Kakegurui.Core
         public QueueLogger(LogLevel level) 
             : base(level, level)
         {
-            _maxCount = AppFileConfig.LogQueueMaxCount;
+            _maxCount = LogConfig.LogQueueMaxCount;
         }
 
         protected override void LogCore(string log)

@@ -26,7 +26,7 @@ namespace Kakegurui.Core
         {
             //创建日志
             LoggerFactory factory = new LoggerFactory();
-            foreach (ILoggerProvider loggerProvider in AppFileConfig.Loggers)
+            foreach (ILoggerProvider loggerProvider in LogConfig.Loggers)
             {
                 factory.AddProvider(loggerProvider);
             }

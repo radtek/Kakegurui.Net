@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
@@ -36,15 +35,16 @@ namespace Kakegurui.Net
     /// </summary>
     public class WebSocketClientChannel : TaskObject
     {
+
         /// <summary>
-        /// ws服务url
+        /// 重连时间
         /// </summary>
-        private readonly Uri _url;
+        private const int ConnectionSpan = 10 * 1000;
 
         /// <summary>
         /// ws服务url
         /// </summary>
-        public Uri Url => _url;
+        public Uri Url { get; }
 
         /// <summary>
         /// 是否连接到ws服务
@@ -58,7 +58,7 @@ namespace Kakegurui.Net
         public WebSocketClientChannel(string url) 
             : base("ws_client")
         {
-            _url = new Uri(url);
+            Url = new Uri(url);
         }
 
         /// <summary>
@@ -76,12 +76,12 @@ namespace Kakegurui.Net
                 {
                     try
                     {
-                        Task connectTask = webSocket.ConnectAsync(_url, _token);
+                        Task connectTask = webSocket.ConnectAsync(Url, _token);
                         connectTask.Wait(_token);
                     }
                     catch (AggregateException)
                     {
-                        Thread.Sleep(AppFileConfig.ConnectionSpan);
+                        Thread.Sleep(ConnectionSpan);
                         continue;
                     }
                     catch (OperationCanceledException)
@@ -90,7 +90,7 @@ namespace Kakegurui.Net
                         break;
                     }
 
-                    LogPool.Logger.LogInformation("ws_connect {0}", _url);
+                    LogPool.Logger.LogInformation("ws_connect {0}", Url);
                     Connected = true;
                     byte[] buffer = new byte[10 * 1024];
                     List<byte> packet = new List<byte>();
@@ -107,15 +107,15 @@ namespace Kakegurui.Net
                                 WebSocketReceived?.Invoke(this, new WebSocketReceivedEventArges
                                 {
                                     Packet = packet,
-                                    Ip = _url.Host,
-                                    Port = _url.Port
+                                    Ip = Url.Host,
+                                    Port = Url.Port
                                 });
                                 packet.Clear();
                             }
                         }
                         catch (AggregateException)
                         {
-                            LogPool.Logger.LogInformation("ws_shutdown {0}", _url);
+                            LogPool.Logger.LogInformation("ws_shutdown {0}", Url);
                             break;
                         }
                         catch (OperationCanceledException)
