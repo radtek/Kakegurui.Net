@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace Kakegurui.Core
@@ -124,7 +125,7 @@ namespace Kakegurui.Core
                 _fs = new FileStream(
                     Path.Combine(_directory, $"{_name}_{_date:yyMMdd}.log"),
                     FileMode.Append,FileAccess.Write,FileShare.ReadWrite);
-                _sw = new StreamWriter(_fs);
+                _sw = new StreamWriter(_fs, Encoding.UTF8);
             }
             _sw.WriteLine(log);
             _sw.Flush();

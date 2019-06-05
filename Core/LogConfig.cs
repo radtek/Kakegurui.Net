@@ -17,6 +17,17 @@ namespace Kakegurui.Core
         private static IConfigurationRoot _config;
 
         /// <summary>
+        /// 设置日志配置文件的路径
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        public static void InitConfig(string filePath)
+        {
+            _config = new ConfigurationBuilder()
+                .AddJsonFile(filePath)
+                .Build();
+        }
+
+        /// <summary>
         /// 配置实例
         /// </summary>
         public static IConfigurationRoot Config => _config ?? (_config = new ConfigurationBuilder()
@@ -54,6 +65,11 @@ namespace Kakegurui.Core
             return Enum.TryParse(level, out LogLevel l) ? l : LogLevel.None;
         }
 
+        /// <summary>
+        /// 获取日志提供者
+        /// </summary>
+        /// <param name="key">日志键</param>
+        /// <returns>日志提供者集合</returns>
         private static List<ILoggerProvider> GetLogProvicers(string key)
         {
             List<ILoggerProvider> providers = new List<ILoggerProvider>();
