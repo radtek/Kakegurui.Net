@@ -18,4 +18,8 @@
     <PackageReference Include="System.Reactive.Linq" Version="4.1.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Web\Config\" />
+  </ItemGroup>
+
 </Project>

@@ -75,19 +75,19 @@ namespace Kakegurui.Core
             List<ILoggerProvider> providers = new List<ILoggerProvider>();
             for (int i = 0; ; ++i)
             {
-                string value = Config.GetValue<string>($"{key}:Logger:{i}:Type");
+                string value = Config.GetValue<string>($"Log:{key}:{i}:Type");
                 if (value == null)
                 {
                     break;
                 }
                 else
                 {
-                    LogLevel minLevel = GetLogLevel($"{key}:Logger:{i}:MinLevel");
+                    LogLevel minLevel = GetLogLevel($"Log:{key}:{i}:MinLevel");
                     if (minLevel == LogLevel.None)
                     {
                         minLevel = LogLevel.Trace;
                     }
-                    LogLevel maxLevel = GetLogLevel($"{key}:Logger:{i}:MaxLevel");
+                    LogLevel maxLevel = GetLogLevel($"Log:{key}:{i}:MaxLevel");
                     if (maxLevel == LogLevel.None)
                     {
                         maxLevel = LogLevel.Critical;
@@ -101,7 +101,7 @@ namespace Kakegurui.Core
                         }
                         case "File":
                         {
-                            string name = Config.GetValue<string>($"{key}:Logger:{i}:Name");
+                            string name = Config.GetValue<string>($"Log:{key}:{i}:Name");
                             providers.Add(new FileLogger(minLevel, maxLevel, name));
                             break;
                         }
@@ -115,11 +115,11 @@ namespace Kakegurui.Core
         /// 从配置文件读取日志集合
         /// </summary>
         /// <returns></returns>
-        public static List<ILoggerProvider> Loggers => GetLogProvicers("Log");
+        public static List<ILoggerProvider> Loggers => GetLogProvicers("Logger");
 
         /// <summary>
         /// 从配置文件读取asp.net日志
         /// </summary>
-        public static List<ILoggerProvider> WebLoggers => GetLogProvicers("WebLog");
+        public static List<ILoggerProvider> WebLoggers => GetLogProvicers("WebLogger");
     }
 }
